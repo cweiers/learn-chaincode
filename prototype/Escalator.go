@@ -66,7 +66,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 }
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	if function == "getFullTicket" {
-		t.getFullTicket(stub, args)
+		return t.getFullTicket(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
 
