@@ -93,17 +93,20 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 // args should have length 4: The fields TicketID, Timestamp, Device, TechPart, and ErrorID have to be initialised
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 5 {
-		return nil, errors.New("Wrong number of arguments, must be 5: TicketID, timestamp, Device, TechPart, and ErrorID")
+	if len(args) != 8 {
+		return nil, errors.New("Wrong number of arguments, must be 8: TicketID, Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 
 	var ticket = Ticket{
-		TicketID:  args[0],
-		Timestamp: args[1],
-		Device:    args[2],
-		Status:    "EINGETROFFEN",
-		TechPart:  args[3],
-		ErrorID:   args[4],
+		TicketID:     args[0],
+		Timestamp:    args[1],
+		Trainstation: args[2],
+		Platform:     args[3],
+		Device:       args[4],
+		Status:       "EINGETROFFEN",
+		TechPart:     args[5],
+		ErrorID:      args[6],
+		ErrorMessage: args[7],
 	}
 
 	state, _ := json.Marshal(ticket)
