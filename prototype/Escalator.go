@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -36,7 +37,12 @@ func main() {
 	}
 }
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	return nil, nil //TODO add counter for ID´s
+
+	err := stub.PutState("counter", []byte("0"))
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 //Invoke is the entry point for all other asset altering functions called by an CC invocation
@@ -66,7 +72,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 }
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	if function == "getFullTicket" {
-		t.getFullTicket(stub, args)
+		return t.getFullTicket(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
 
@@ -94,24 +100,62 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 8 {
-		return nil, errors.New("Wrong number of arguments, must be 8: TicketID, Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
+		return nil, errors.New("Wrong number of arguments, must be 7: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 
+	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
+	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
+	idAsInt, _ := strconv.Atoi(str)          // TODO This seems unnecessarily complicated.
+	idAsInt++                                //
+	idAsString := strconv.Itoa(idAsInt)
+	err := stub.PutState("counter", []byte(idAsString))
+
 	var ticket = Ticket{
-		TicketID:     args[0],
-		Timestamp:    args[1],
-		Trainstation: args[2],
-		Platform:     args[3],
-		Device:       args[4],
+		TicketID:     idAsString,
+		Timestamp:    args[0],
+		Trainstation: args[1],
+		Platform:     args[2],
+		Device:       args[3],
 		Status:       "EINGETROFFEN",
-		TechPart:     args[5],
-		ErrorID:      args[6],
-		ErrorMessage: args[7],
+		TechPart:     args[4],
+		ErrorID:      args[5],
+		ErrorMessage: args[6],
 	}
 
 	state, _ := json.Marshal(ticket)
 
-	err := stub.PutState(args[0], []byte(state))
+	stub.PutState(args[0], []byte(state))
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// Creates a default ticket. Maybe change to just call createTicket with arguments.
+//
+func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
+	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
+	idAsInt, _ := strconv.Atoi(str)          // TODO This seems unnecessarily complicated.
+	idAsInt++                                //
+	idAsString := strconv.Itoa(idAsInt)
+	err := stub.PutState("counter", []byte(idAsString))
+
+	var ticket = Ticket{
+		TicketID:     idAsString,
+		Timestamp:    "2017-12-03T12:35:00.000Z",
+		Trainstation: "Bonn Hbf",
+		Platform:     "Gleis 5",
+		Device:       "Rolltreppe nach oben",
+		Status:       "Eingetroffen",
+		TechPart:     "Motor RTM-X 64",
+		ErrorID:      "#2356-102",
+		ErrorMessage: "Totalausfall",
+	}
+	state, _ := json.Marshal(ticket)
+
+	stub.PutState(args[0], []byte(state))
 	if err != nil {
 		return nil, err
 	}
