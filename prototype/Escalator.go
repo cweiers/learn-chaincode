@@ -66,7 +66,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	case "finishRepair":
 		return t.finishRepair(stub, args)
 	case "createDefaultTicket":
-		return t.createDefaultTicket((stub, args))
+		return t.createDefaultTicket(stub, args)
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -250,7 +250,6 @@ func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []
 
 	var state []byte
 	var err error
-	stub.
 	state, err = stub.GetState(args[0])
 	if err != nil {
 		return nil, err
