@@ -1,0 +1,296 @@
+// Escalator
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"github.com/hyperledger/fabric/core/chaincode/shim"
+)
+
+type SimpleChaincode struct {
+}
+
+type Ticket struct {
+	TicketID        string
+	Timestamp       string // time of ticket creation
+	Trainstation    string
+	Platform        string
+	Device          string // the device in need of repairs (i.e. left upwards escalator)
+	Status          string // current ticket status (not repair status), i.e. "OPEN". TODO: rework as some sort of enum to limit input.
+	TechPart        string // representing the defective part of the escalator
+	ErrorID         string
+	ErrorMessage    string
+	ServiceProvider string // the assigned service provider thats commissioned to do the repairs
+	SpEmployee      string // repairman assigned by service_provider
+	SpeCommentary   string // additional commentary, optionally to be filled out by the sp_employee
+	EstRepairTime   string
+	RepairStatus    string
+}
+
+func main() {
+	err := shim.Start(new(SimpleChaincode))
+	if err != nil {
+		fmt.Printf("Error starting Simple chaincode: %s", err)
+	}
+}
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	return nil, nil //TODO add counter for ID´s
+}
+
+//Invoke is the entry point for all other asset altering functions called by an CC invocation
+func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+
+	switch function {
+	case "createTicket":
+		return t.createTicket(stub, args)
+	case "assignTicket":
+		return t.assignTicket(stub, args)
+	case "acceptTicket":
+		return t.acceptTicket(stub, args)
+	case "assignMechanic":
+		return t.assignMechanic(stub, args)
+	case "startJourney":
+		return t.startJourney(stub, args)
+	case "onArrival":
+		return t.onArrival(stub, args)
+	case "startRepair":
+		return t.startRepair(stub, args)
+	case "finishRepair":
+		return t.finishRepair(stub, args)
+	}
+
+	return nil, errors.New("Received unknown function invocation: " + function)
+
+}
+func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	if function == "getFullTicket" {
+		t.getFullTicket(stub, args)
+	}
+	fmt.Println("query did not find func: " + function)
+
+	return nil, errors.New("Received unknown function query")
+}
+
+func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments. Must be (1): TicketID")
+	}
+
+	//	var ticketAsByteArr []byte
+
+	ticketAsByteArr, err := stub.GetState(args[0])
+
+	if err != nil {
+		return nil, errors.New("Query failure for getFullTicket")
+	}
+
+	return ticketAsByteArr, nil
+}
+
+// Create a new ticket and store it on the ledger with ticket_id as key.
+// args should have length 4: The fields TicketID, Timestamp, Device, TechPart, and ErrorID have to be initialised
+//
+func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 5 {
+		return nil, errors.New("Wrong number of arguments, must be 5: TicketID, timestamp, Device, TechPart, and ErrorID")
+	}
+
+	var ticket = Ticket{
+		TicketID:  args[0],
+		Timestamp: args[1],
+		Device:    args[2],
+		Status:    "EINGETROFFEN",
+		TechPart:  args[3],
+		ErrorID:   args[4],
+	}
+
+	state, _ := json.Marshal(ticket)
+
+	err := stub.PutState(args[0], []byte(state))
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// Assign an existing Ticket to a ServiceProvider. Arguments should be TicketID and the name of the serviceprovider that the ticket gets assigned to.
+func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and ServiceProvider")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0]) //get ticket from world state as byte array
+	if err != nil {
+		return nil, err
+	}
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually
+	ticket.ServiceProvider = args[1] //set new  ServiceProvider
+	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
+	ticket.RepairStatus = "Wird geprueft"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) acceptTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID ")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.Status = "ZUGEWIESEN"
+	ticket.RepairStatus = "Auftrag angenommen"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) assignMechanic(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and SpEmployee ")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.SpEmployee = args[1]
+	ticket.RepairStatus = "Ticket erhalten"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.RepairStatus = "Techniker in Anfahrt"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 3 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID,EstRepairTime and SpeCommentary ")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.SpeCommentary = args[1]
+	ticket.EstRepairTime = args[2]
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+func (t *SimpleChaincode) startRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.RepairStatus = "Reparatur begonnen"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.RepairStatus = "Reparatur abgeschlossen"
+	ticket.Status = "ERLEDIGT"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
