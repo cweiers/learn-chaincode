@@ -168,7 +168,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	}
 	state, _ := json.Marshal(ticket)
 
-	stub.PutState(args[0], []byte(state))
+	stub.PutState(idAsString, []byte(state))
 	if err != nil {
 		return nil, err
 	}
