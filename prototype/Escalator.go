@@ -76,9 +76,20 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	if function == "getFullTicket" {
 		return t.getFullTicket(stub, args)
 	}
+	if function == "getCounter" {
+		return t.getCounter(stub, args)
+	}
 	fmt.Println("query did not find func: " + function)
 
 	return nil, errors.New("Received unknown function query")
+}
+
+func (t *SimpleChaincode) getCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	counterAsByteArr, err := stub.GetState("counter")
+	if err != nil {
+		return nil, errors.New("Query failure for getCounter")
+	}
+	return counterAsByteArr, nil
 }
 
 func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
