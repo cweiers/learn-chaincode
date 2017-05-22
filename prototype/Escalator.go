@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -79,6 +80,9 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	if function == "getCounter" {
 		return t.getCounter(stub, args)
 	}
+	if function == "getTicketsByRange" {
+		return t.getTicketsByRange(stub, args)
+	}
 	fmt.Println("query did not find func: " + function)
 
 	return nil, errors.New("Received unknown function query")
@@ -106,6 +110,51 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 	}
 
 	return ticketAsByteArr, nil
+}
+
+func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
+	}
+
+	startKey := args[0]
+	endKey := args[1]
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+	for resultsIterator.HasNext() {
+		queryResultKey, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+		// Add a comma before array members, suppress it for the first array member
+		if bArrayMemberAlreadyWritten == true {
+			buffer.WriteString(",")
+		}
+
+		buffer.WriteString("{\"TicketID\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(queryResultKey)
+		buffer.WriteString("\"")
+
+		buffer.WriteString(", \"Ticket\":")
+		// Record is a JSON object, so we write as-is
+		buffer.WriteString(string(queryResultValue))
+		buffer.WriteString("}")
+		bArrayMemberAlreadyWritten = true
+	}
+	buffer.WriteString("]")
+
+	return buffer.Bytes(), nil
 }
 
 // Create a new ticket and store it on the ledger with ticket_id as key.
@@ -137,7 +186,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 
 	state, _ := json.Marshal(ticket)
 
-	stub.PutState(args[0], []byte(state))
+	stub.PutState(idAsString, state)
 	if err != nil {
 		return nil, err
 	}
@@ -148,10 +197,10 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
+	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
 	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
-	idAsInt, _ := strconv.Atoi(str)          // TODO This seems unnecessarily complicated.
-	idAsInt++                                //
+	idAsInt, _ := strconv.Atoi(str)          //
+	idAsInt++                                // TODO This seems unnecessarily complicated.
 	idAsString := strconv.Itoa(idAsInt)
 	err := stub.PutState("counter", []byte(idAsString))
 
@@ -168,7 +217,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	}
 	state, _ := json.Marshal(ticket)
 
-	stub.PutState(idAsString, []byte(state))
+	stub.PutState(idAsString, state)
 	if err != nil {
 		return nil, err
 	}
