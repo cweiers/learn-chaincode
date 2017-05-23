@@ -132,7 +132,7 @@ func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, ar
 
 	bArrayMemberAlreadyWritten := false
 	for resultsIterator.HasNext() {
-		queryResultKey, queryResultValue, err := resultsIterator.Next()
+		_, queryResultValue, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
@@ -141,13 +141,13 @@ func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, ar
 			buffer.WriteString(",")
 		}
 
-		buffer.WriteString("{\"TicketID\":")
-		buffer.WriteString("\"")
-		buffer.WriteString(queryResultKey)
-		buffer.WriteString("\"")
+		buffer.WriteString("{")
+		//		buffer.WriteString("\"")
+		//		buffer.WriteString(queryResultKey)
+		//		buffer.WriteString("\"")
 
-		buffer.WriteString(", \"Ticket\":")
-		// Record is a JSON object, so we write as-is
+		//		buffer.WriteString(", \"Ticket\":")
+
 		buffer.WriteString(string(queryResultValue))
 		buffer.WriteString("}")
 		bArrayMemberAlreadyWritten = true
@@ -158,7 +158,6 @@ func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, ar
 }
 
 // Create a new ticket and store it on the ledger with ticket_id as key.
-// args should have length 4: The fields TicketID, Timestamp, Device, TechPart, and ErrorID have to be initialised
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 8 {
@@ -238,7 +237,7 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, err
 	}
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually
+	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually)
 	ticket.ServiceProvider = args[1] //set new  ServiceProvider
 	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
 	ticket.RepairStatus = "Wird geprueft"
