@@ -157,10 +157,20 @@ func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, ar
 	return buffer.Bytes(), nil
 }
 
+func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	counterAsByteArr, err := stub.GetState("counter")
+	s := string(counterAsByteArr[:])
+	if err != nil {
+		return nil, err
+	}
+
+	return t.getTicketsByRange(stub, []string{"1", s})
+}
+
 // Create a new ticket and store it on the ledger with ticket_id as key.
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 8 {
+	if len(args) != 7 {
 		return nil, errors.New("Wrong number of arguments, must be 7: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 
