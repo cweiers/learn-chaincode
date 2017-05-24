@@ -68,25 +68,24 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.finishRepair(stub, args)
 	case "createDefaultTicket":
 		return t.createDefaultTicket(stub, args)
-	case "getAllTickets":
-		return t.getAllTickets(stub, args)
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
 
 }
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	if function == "getFullTicket" {
+
+	switch function {
+	case "getFullTicket":
 		return t.getFullTicket(stub, args)
-	}
-	if function == "getCounter" {
+	case "getCounter":
 		return t.getCounter(stub, args)
-	}
-	if function == "getTicketsByRange" {
+	case "getTicketsByRange":
 		return t.getTicketsByRange(stub, args)
+	case "getAllTickets":
+		return t.getAllTickets(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
-
 	return nil, errors.New("Received unknown function query")
 }
 
