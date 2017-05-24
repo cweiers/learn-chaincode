@@ -54,8 +54,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.createTicket(stub, args)
 	case "assignTicket":
 		return t.assignTicket(stub, args)
-	case "acceptTicket":
-		return t.acceptTicket(stub, args)
+		//	case "acceptTicket":
+		//		return t.acceptTicket(stub, args)
 	case "assignMechanic":
 		return t.assignMechanic(stub, args)
 	case "startJourney":
@@ -68,6 +68,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.finishRepair(stub, args)
 	case "createDefaultTicket":
 		return t.createDefaultTicket(stub, args)
+	case "getAllTickets":
+		return t.getAllTickets(stub, args)
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -251,32 +253,6 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 	ticket.ServiceProvider = args[1] //set new  ServiceProvider
 	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
 	ticket.RepairStatus = "Wird geprueft"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
-
-func (t *SimpleChaincode) acceptTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Wrong number of arguments, must be 1: TicketID ")
-	}
-
-	var state []byte
-	var err error
-
-	state, err = stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
-	ticket.Status = "ZUGEWIESEN"
-	ticket.RepairStatus = "Auftrag angenommen"
 	state, err = json.Marshal(ticket)
 	if err != nil {
 		return nil, err
