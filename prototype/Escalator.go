@@ -165,8 +165,8 @@ func (t *SimpleChaincode) getTicketsByServiceProvider(stub shim.ChaincodeStubInt
 			bArrayMemberAlreadyWritten = true
 		}
 
-		buffer.WriteString("]")
 	}
+	buffer.WriteString("]")
 	return buffer.Bytes(), nil
 }
 
@@ -245,7 +245,12 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 	return buffer.Bytes(), nil
 }
 
+//returns a collection of tickets for a given SPEmployee and his/her Employer (the ServiceProvider)
 func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: ServiceProvider and SpEmployee ")
+	}
+
 	//construct iterator
 	startKey := "1"
 	MaxIdAsBytes, _ := stub.GetState("counter")
@@ -274,7 +279,7 @@ func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface,
 		json.Unmarshal(queryResultValue, &tempTicket)
 
 		// check if ticket has given ServiceProvider
-		if strings.EqualFold(tempTicket.SpEmployee, args[0]) {
+		if strings.EqualFold(tempTicket.SpEmployee, args[1]) && strings.EqualFold(tempTicket.ServiceProvider, args[0]) {
 
 			// Add a comma before array members, suppress it for the first array member
 			if bArrayMemberAlreadyWritten == true {
