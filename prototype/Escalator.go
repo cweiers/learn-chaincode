@@ -147,7 +147,7 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 
 		json.Unmarshal(queryResultValue, &tempTicket)
 
-		if strings.EqualFold(tempTicket.Status, arg[0]) {
+		if strings.EqualFold(tempTicket.Status, args[0]) {
 
 			// Add a comma before array members, suppress it for the first array member
 			if bArrayMemberAlreadyWritten == true {
