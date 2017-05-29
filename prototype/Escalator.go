@@ -122,7 +122,8 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 
 	//construct iterator
 	startKey := "1"
-	endKey, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
 	if err != nil {
