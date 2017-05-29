@@ -89,6 +89,12 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.getTicketsByStatus(stub, args)
 	case "getTicketsByServiceProvider":
 		return t.getTicketsByServiceProvider(stub, args)
+	case "getTicketsByMechanic":
+		return t.getTicketsByMechanic(stub, args)
+	case "getAssignedSPTickets":
+		return t.getAssignedSPTickets(stub, args)
+	case "getWIPTickets":
+		return t.getWIPTickets(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
 	return nil, errors.New("Received unknown function query")
