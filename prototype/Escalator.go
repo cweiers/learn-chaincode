@@ -87,6 +87,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.getAllTickets(stub, args)
 	case "getTicketsByStatus":
 		return t.getTicketsByStatus(stub, args)
+	case "getTicketsByServiceProvider":
+		return t.getTicketsByServiceProvider(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
 	return nil, errors.New("Received unknown function query")
@@ -116,12 +118,7 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 	return ticketAsByteArr, nil
 }
 
-//returns a collection of Tickets with a given Status. Expects either "EINGETROFFEN", "ZUGEWIESEN", or "ERLEDIGT" as single input argument.
-func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 1: Status")
-	}
-
+func (t *SimpleChaincode) getTicketsByServiceProvider(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
 	startKey := "1"
 	MaxIdAsBytes, _ := stub.GetState("counter")
@@ -132,7 +129,7 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 		return nil, err
 	}
 	defer resultsIterator.Close()
-	//----------------------------------------------
+
 	// buffer is a JSON array containing QueryResults
 	var buffer bytes.Buffer
 	buffer.WriteString("[")
@@ -149,26 +146,239 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 
 		json.Unmarshal(queryResultValue, &tempTicket)
 
-		if strings.EqualFold(tempTicket.Status, args[0]) {
+		// check if ticket has given ServiceProvider
+		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) {
 
 			// Add a comma before array members, suppress it for the first array member
 			if bArrayMemberAlreadyWritten == true {
 				buffer.WriteString(",")
 			}
 			buffer.WriteString("{")
-			//		buffer.WriteString("\"")
-			//		buffer.WriteString(queryResultKey)
-			//		buffer.WriteString("\"")
-
-			//		buffer.WriteString(", \"Ticket\":")
-
 			buffer.WriteString(string(queryResultValue))
 			buffer.WriteString("}")
 			bArrayMemberAlreadyWritten = true
 		}
+
+		buffer.WriteString("]")
+	}
+	return buffer.Bytes(), nil
+}
+
+//returns a collection of Tickets with a given Status. Expects either "EINGETROFFEN", "ZUGEWIESEN", or "ERLEDIGT" as first input argument.
+//OPTIONAL : Add ServiceProvider String as 2nd argument.
+func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	//construct iterator
+	startKey := "1"
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	if len(args) == 2 {
+		for resultsIterator.HasNext() {
+			_, queryResultValue, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			json.Unmarshal(queryResultValue, &tempTicket)
+
+			// check if ticket has given Status AND ServiceProvider
+			if strings.EqualFold(tempTicket.Status, args[0]) && strings.EqualFold(tempTicket.ServiceProvider, args[1]) {
+
+				// Add a comma before array members, suppress it for the first array member
+				if bArrayMemberAlreadyWritten == true {
+					buffer.WriteString(",")
+				}
+				buffer.WriteString("{")
+				buffer.WriteString(string(queryResultValue))
+				buffer.WriteString("}")
+				bArrayMemberAlreadyWritten = true
+			}
+		}
+		buffer.WriteString("]")
+	}
+	if len(args) == 1 {
+		for resultsIterator.HasNext() {
+			_, queryResultValue, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			json.Unmarshal(queryResultValue, &tempTicket)
+
+			// check if ticket has given Status
+			if strings.EqualFold(tempTicket.Status, args[0]) {
+
+				// Add a comma before array members, suppress it for the first array member
+				if bArrayMemberAlreadyWritten == true {
+					buffer.WriteString(",")
+				}
+				buffer.WriteString("{")
+				buffer.WriteString(string(queryResultValue))
+				buffer.WriteString("}")
+				bArrayMemberAlreadyWritten = true
+			}
+		}
+		buffer.WriteString("]")
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//construct iterator
+	startKey := "1"
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	for resultsIterator.HasNext() {
+		_, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(queryResultValue, &tempTicket)
+
+		// check if ticket has given ServiceProvider
+		if strings.EqualFold(tempTicket.SpEmployee, args[0]) {
+
+			// Add a comma before array members, suppress it for the first array member
+			if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+			}
+			buffer.WriteString("{")
+			buffer.WriteString(string(queryResultValue))
+			buffer.WriteString("}")
+			bArrayMemberAlreadyWritten = true
+		}
+
 	}
 	buffer.WriteString("]")
-	//----------------------------------------------
+	return buffer.Bytes(), nil
+}
+
+// returns a collection of Tickets that belong to the "Work in Progress" column (RepairStatus = "Techniker vor Ort" or "Reparatur begonnen")
+// Takes a ServiceProvider string as input.
+func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//construct iterator
+	startKey := "1"
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	for resultsIterator.HasNext() {
+		_, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(queryResultValue, &tempTicket)
+
+		// check if ticket has given ServiceProvider
+		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) &&
+			(strings.EqualFold(tempTicket.RepairStatus, "Reparatur begonnen") || strings.EqualFold(tempTicket.RepairStatus, "Techniker vor Ort")) {
+
+			// Add a comma before array members, suppress it for the first array member
+			if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+			}
+			buffer.WriteString("{")
+			buffer.WriteString(string(queryResultValue))
+			buffer.WriteString("}")
+			bArrayMemberAlreadyWritten = true
+		}
+
+	}
+	buffer.WriteString("]")
+	return buffer.Bytes(), nil
+}
+
+// Returns Tickets for a given ServiceProvider that have been assigned to a Mechanic that has not yet had a look at the broken device
+func (t *SimpleChaincode) getAssignedSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//construct iterator
+	startKey := "1"
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	for resultsIterator.HasNext() {
+		_, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(queryResultValue, &tempTicket)
+
+		// check if ticket has given ServiceProvider
+		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) &&
+			(strings.EqualFold(tempTicket.RepairStatus, "Techniker in Anfahrt") || strings.EqualFold(tempTicket.RepairStatus, "Ticket erhalten")) {
+
+			// Add a comma before array members, suppress it for the first array member
+			if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+			}
+			buffer.WriteString("{")
+			buffer.WriteString(string(queryResultValue))
+			buffer.WriteString("}")
+			bArrayMemberAlreadyWritten = true
+		}
+
+	}
+	buffer.WriteString("]")
 	return buffer.Bytes(), nil
 }
 
@@ -387,6 +597,7 @@ func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []str
 	json.Unmarshal(state, ticket)
 	ticket.SpeCommentary = args[1]
 	ticket.EstRepairTime = args[2]
+	ticket.RepairStatus = "Techniker vor Ort"
 	state, err = json.Marshal(ticket)
 	if err != nil {
 		return nil, err
