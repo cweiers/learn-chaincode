@@ -1,0 +1,163 @@
+AUFRUFE / INVOCATIONS
+
+
+Ticketerstellung (Default)
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"createDefaultTicket",
+         "args":[]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+
+Ticket Zuweisung (DB-Seite)
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"assignTicket",
+         "args":["1", "Schindler"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+Ticket annehmen (Firmenseite)
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"acceptTicket",
+         "args":["1"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+Mechaniker zuweisen (Firmenseite)
+
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"assignMechanic",
+         "args":["1", "Hanswald Schrauber"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+Anfahrt begonnen (Mechanikerseite)
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"startJourney",
+         "args":["1"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+Bei Ankunft: Zeitschätzung/Kommentar (Mechanikerseite)
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"onArrival",
+         "args":["1", "6 Stunden", "Scheibenwischerhydraulik defekt"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+
+Reparatur begonnen (Mechanikerseite):
+
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"startRepair",
+         "args":["1"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+
+Reparatur abgeschlossen (Mechanikerseite):
+
+{
+  "jsonrpc": "2.0",
+  "method": "invoke",
+  "params": {
+      "type": 1,
+      "chaincodeID":{
+          "name":"6a3bd2e9e7dd20429a631cc22966946685764101dc1e30ea90d4b54a656037dfcd62236c4741888097dd668626970a07f1b9be34acf313a2721fec3a370c97ea"
+      },
+      "ctorMsg": {
+         "function":"finishRepair",
+         "args":["1"]
+      },
+      "secureContext": "user_type2_1"
+  },
+  "id": 3
+}
+
+
+QUERIES
+
+

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -111,6 +112,61 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 	}
 
 	return ticketAsByteArr, nil
+}
+
+//returns a collection of Tickets with a given Status. Expects either "EINGETROFFEN", "ZUGEWIESEN", or "ERLEDIGT" as single input argument.
+func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 1: Status")
+	}
+
+	//construct iterator
+	startKey := "1"
+	endKey, _ := stub.GetState("counter")
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+	//----------------------------------------------
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	for resultsIterator.HasNext() {
+		_, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(queryResultValue, &tempTicket)
+
+		if strings.EqualFold(tempTicket.Status, arg[0]) {
+
+			// Add a comma before array members, suppress it for the first array member
+			if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+			}
+			buffer.WriteString("{")
+			//		buffer.WriteString("\"")
+			//		buffer.WriteString(queryResultKey)
+			//		buffer.WriteString("\"")
+
+			//		buffer.WriteString(", \"Ticket\":")
+
+			buffer.WriteString(string(queryResultValue))
+			buffer.WriteString("}")
+			bArrayMemberAlreadyWritten = true
+		}
+	}
+	buffer.WriteString("]")
+	//----------------------------------------------
+	return buffer.Bytes(), nil
 }
 
 func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
