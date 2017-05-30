@@ -451,9 +451,11 @@ func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args [
 // Create a new ticket and store it on the ledger with ticket_id as key.
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 7 {
-		return nil, errors.New("Wrong number of arguments, must be 7: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
+	if len(args) != 6 {
+		return nil, errors.New("Wrong number of arguments, must be 6: , Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
+
+	timestamp, _ := stub.GetTxTimestamp()
 
 	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
 	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
@@ -464,7 +466,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    args[0],
+		Timestamp:    timestamp.String(),
 		Trainstation: args[1],
 		Platform:     args[2],
 		Device:       args[3],
@@ -487,6 +489,8 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
+	timestamp, _ := stub.GetTxTimestamp()
+
 	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
 	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
 	idAsInt, _ := strconv.Atoi(str)          //
@@ -496,7 +500,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    "2017-12-03T12:35:00.000Z",
+		Timestamp:    timestamp.String(),
 		Trainstation: "Bonn Hbf",
 		Platform:     "Gleis 5",
 		Device:       "Rolltreppe nach oben",
