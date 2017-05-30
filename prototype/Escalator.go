@@ -30,6 +30,8 @@ type Ticket struct {
 	SpeCommentary   string // additional commentary, optionally to be filled out by the sp_employee
 	EstRepairTime   string
 	RepairStatus    string
+	FinalRepairTime string
+	FinalReport     string
 }
 
 func main() {
@@ -53,10 +55,10 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	switch function {
 	case "createTicket":
 		return t.createTicket(stub, args)
+	case "createDefaultTicket":
+		return t.createDefaultTicket(stub, args)
 	case "assignTicket":
 		return t.assignTicket(stub, args)
-		//	case "acceptTicket":
-		//		return t.acceptTicket(stub, args)
 	case "assignMechanic":
 		return t.assignMechanic(stub, args)
 	case "startJourney":
@@ -67,8 +69,9 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.startRepair(stub, args)
 	case "finishRepair":
 		return t.finishRepair(stub, args)
-	case "createDefaultTicket":
-		return t.createDefaultTicket(stub, args)
+	case "writeFinalReport":
+		return t.writeFinalReport(stub, args)
+
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -455,8 +458,6 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("Wrong number of arguments, must be 6: , Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 
-	timestamp, _ := stub.GetTxTimestamp()
-
 	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
 	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
 	idAsInt, _ := strconv.Atoi(str)          // TODO This seems unnecessarily complicated.
@@ -466,7 +467,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    timestamp.String(),
+		Timestamp:    args[0],
 		Trainstation: args[1],
 		Platform:     args[2],
 		Device:       args[3],
@@ -489,8 +490,6 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	timestamp, _ := stub.GetTxTimestamp()
-
 	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
 	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
 	idAsInt, _ := strconv.Atoi(str)          //
@@ -500,7 +499,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    timestamp.String(),
+		Timestamp:    "2017-06-01T06:50:00.000Z",
 		Trainstation: "Bonn Hbf",
 		Platform:     "Gleis 5",
 		Device:       "Rolltreppe nach oben",
@@ -670,4 +669,31 @@ func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []
 	stub.PutState(args[0], state) //write updated ticket to world state again
 
 	return nil, nil
+}
+
+func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 3 {
+		return nil, errors.New("Wrong number of arguments, must be 3: TicketID , final Repairtime and final commentary")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)
+	ticket.FinalRepairTime = args[1]
+	ticket.FinalReport = args[2]
+	ticket.RepairStatus = "Im Abschluss"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+
 }
