@@ -98,6 +98,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.getAssignedSPTickets(stub, args)
 	case "getWIPTickets":
 		return t.getWIPTickets(stub, args)
+	case "getNewSPTickets":
+		return t.getNewSPTickets(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
 	return nil, errors.New("Received unknown function query")
@@ -332,6 +334,51 @@ func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args [
 		// check if ticket has given ServiceProvider
 		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) &&
 			(strings.EqualFold(tempTicket.RepairStatus, "Reparatur begonnen") || strings.EqualFold(tempTicket.RepairStatus, "Techniker vor Ort")) {
+
+			// Add a comma before array members, suppress it for the first array member
+			if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+			}
+			buffer.WriteString("{")
+			buffer.WriteString(string(queryResultValue))
+			buffer.WriteString("}")
+			bArrayMemberAlreadyWritten = true
+		}
+
+	}
+	buffer.WriteString("]")
+	return buffer.Bytes(), nil
+}
+
+func (t *SimpleChaincode) getNewSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	startKey := "1"
+	MaxIdAsBytes, _ := stub.GetState("counter")
+	endKey := string(MaxIdAsBytes[:])
+
+	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	// buffer is a JSON array containing QueryResults
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+
+	var tempTicket Ticket //place to unmarshall our Tickets in []byte-Form into.
+
+	for resultsIterator.HasNext() {
+		_, queryResultValue, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(queryResultValue, &tempTicket)
+
+		// check if ticket has given ServiceProvider
+		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) && strings.EqualFold(tempTicket.RepairStatus, "Wird geprueft") {
 
 			// Add a comma before array members, suppress it for the first array member
 			if bArrayMemberAlreadyWritten == true {
@@ -596,7 +643,7 @@ func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []
 
 func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 3 {
-		return nil, errors.New("Wrong number of arguments, must be 2: TicketID,EstRepairTime and SpeCommentary ")
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID,SpeCommentary and EstRepairTime")
 	}
 
 	var state []byte
