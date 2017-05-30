@@ -501,8 +501,8 @@ func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args [
 // Create a new ticket and store it on the ledger with ticket_id as key.
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 6 {
-		return nil, errors.New("Wrong number of arguments, must be 6: , Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
+	if len(args) != 7 {
+		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 
 	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
