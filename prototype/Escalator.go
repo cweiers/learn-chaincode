@@ -131,7 +131,7 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 
 func (t *SimpleChaincode) getTicketsByServiceProvider(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
@@ -180,7 +180,7 @@ func (t *SimpleChaincode) getTicketsByServiceProvider(stub shim.ChaincodeStubInt
 func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	//construct iterator
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
@@ -257,7 +257,7 @@ func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface,
 	}
 
 	//construct iterator
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
@@ -305,7 +305,7 @@ func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface,
 // Takes a ServiceProvider string as input.
 func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
@@ -351,7 +351,7 @@ func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args [
 }
 
 func (t *SimpleChaincode) getNewSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
@@ -398,7 +398,7 @@ func (t *SimpleChaincode) getNewSPTickets(stub shim.ChaincodeStubInterface, args
 // Returns Tickets for a given ServiceProvider that have been assigned to a Mechanic that has not yet had a look at the broken device
 func (t *SimpleChaincode) getAssignedSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
-	startKey := "1"
+	startKey := "0001"
 	MaxIdAsBytes, _ := stub.GetState("counter")
 	endKey := string(MaxIdAsBytes[:])
 
