@@ -518,7 +518,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 		ErrorMessage: args[6],
 	}
 
-	state, _ := json.Marshal(ticket)
+	state, err := json.Marshal(ticket)
 
 	stub.PutState(idAsString, state)
 	if err != nil {
@@ -544,7 +544,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 		ErrorID:      "#2356-102",
 		ErrorMessage: "Totalausfall",
 	}
-	state, _ := json.Marshal(ticket)
+	state, err := json.Marshal(ticket)
 
 	stub.PutState(idAsString, state)
 	if err != nil {
