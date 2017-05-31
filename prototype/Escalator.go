@@ -495,7 +495,7 @@ func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args [
 		return nil, err
 	}
 
-	return t.getTicketsByRange(stub, []string{"1", s})
+	return t.getTicketsByRange(stub, []string{"0001", s})
 }
 
 // Create a new ticket and store it on the ledger with ticket_id as key.
@@ -748,6 +748,6 @@ func createID(stub shim.ChaincodeStubInterface) string {
 	idAsInt++                                // TODO This seems unnecessarily complicated.
 	idAsString := strconv.Itoa(idAsInt)
 	idAsString = leftPad2Len(idAsString, "0", 4)
-
+	stub.PutState("counter", []byte(idAsString))
 	return idAsString
 }
