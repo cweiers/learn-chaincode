@@ -504,13 +504,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 	if len(args) != 7 {
 		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
-
-	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment, and set as
-	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
-	idAsInt, _ := strconv.Atoi(str)          // TODO This seems unnecessarily complicated.
-	idAsInt++                                //
-	idAsString := strconv.Itoa(idAsInt)
-	err := stub.PutState("counter", []byte(idAsString))
+	idAsString := createID(stub)
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
@@ -537,19 +531,14 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
-	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
-	idAsInt, _ := strconv.Atoi(str)          //
-	idAsInt++                                // TODO This seems unnecessarily complicated.
-	idAsString := strconv.Itoa(idAsInt)
-	err := stub.PutState("counter", []byte(idAsString))
+	idAsString := createID(stub)
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
 		Timestamp:    "2017-06-01T06:50:00.000Z",
 		Trainstation: "Bonn Hbf",
 		Platform:     "Gleis 5",
-		Device:       "Rolltreppe nach oben",
+		Device:       "Rolltreppe G5W2",
 		Status:       "Eingetroffen",
 		TechPart:     "Motor RTM-X 64",
 		ErrorID:      "#2356-102",
@@ -742,5 +731,23 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 	stub.PutState(args[0], state) //write updated ticket to world state again
 
 	return nil, nil
+}
 
+func leftPad2Len(s string, padStr string, overallLen int) string {
+	var padCountInt int
+	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
+	var retStr = strings.Repeat(padStr, padCountInt) + s
+	return retStr[(len(retStr) - overallLen):]
+}
+
+func createID(stub shim.ChaincodeStubInterface) string {
+
+	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
+	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
+	idAsInt, _ := strconv.Atoi(str)          //
+	idAsInt++                                // TODO This seems unnecessarily complicated.
+	idAsString := strconv.Itoa(idAsInt)
+	idAsString = leftPad2Len(idAsString, "0", 4)
+
+	return idAsString
 }
