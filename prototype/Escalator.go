@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
