@@ -737,8 +737,9 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 
 func getTransactionTimeString(stub shim.ChaincodeStubInterface) string {
 	timePointer, _ := stub.GetTxTimestamp()
+
 	var t2 time.Time
-	t2 = time.Unix(int64(timePointer.GetSeconds()), int64(timePointer.GetNanos()))
+	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need display at this accuracy anyway
 
 	str := t2.Format("02 Jan 06 15:04 MST")
 	return str
