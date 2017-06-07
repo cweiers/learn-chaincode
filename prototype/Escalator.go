@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
@@ -507,10 +505,10 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 	idAsString := createID(stub)
-	timeSting := getTransactionTimeString()
+
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    timeString,
+		Timestamp:    args[0],
 		Trainstation: args[1],
 		Platform:     args[2],
 		Device:       args[3],
@@ -534,10 +532,10 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	idAsString := createID(stub)
-	timeString := getTransactionTimeString()
+
 	var ticket = Ticket{
 		TicketID:     idAsString,
-		Timestamp:    timeString,
+		Timestamp:    "2017-06-01T06:50:00.000Z",
 		Trainstation: "Bonn Hbf",
 		Platform:     "Gleis 5",
 		Device:       "Rolltreppe G5W2",
@@ -733,15 +731,6 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 	stub.PutState(args[0], state) //write updated ticket to world state again
 
 	return nil, nil
-}
-
-func getTransactionTimeString(stub shim.ChaincodeStubInterface) string {
-	timePointer, _ := stub.GetTxTimestamp()
-	var t2 time.Time
-	t2 = time.Unix(int64(timePointer.GetSeconds()), int64(timePointer.GetNanos()))
-
-	str := t2.Format("02 Jan 06 15:04 MST")
-	return str
 }
 
 func leftPad2Len(s string, padStr string, overallLen int) string {
