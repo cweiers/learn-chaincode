@@ -506,7 +506,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 	idAsString := createID(stub)
-	timeSting := getTransactionTimeString(stub)
+	timeString := getTransactionTimeString(stub)
 	var ticket = Ticket{
 		TicketID:     idAsString,
 		Timestamp:    timeString,
