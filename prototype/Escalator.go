@@ -49,12 +49,16 @@ func main() {
 	}
 }
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	err := stub.PutState("escalatorCounter", []byte("0"))
+	err2 := stub.PutState("ticketCounter", []byte("0"))
 
-	err := stub.PutState("ticketCounter", []byte("0"))
-	//	err := stub.PutState("ticketCounter", []byte("0"))
 	if err != nil {
 		return nil, err
 	}
+	if err2 != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -149,7 +153,10 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	esc = args[0]
+	//create a Default-Escalator
+	stationAsByteArr := []byte("Kiel Hbf")
+	platformAsByteArr := []byte("Gleis 4")
+	defaultEsc, err := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
 
 	idAsString, _ := createID(stub, "ticket")
 	timeString := getTransactionTimeString(stub)
@@ -180,7 +187,7 @@ func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args
 		return nil, errors.New("Wrong number of arguments, must be 2: Trainstation and Platform")
 	}
 
-	idAsString, _ := createID("escalator")
+	idAsString, _ := createID(stub, "escalator")
 	idAsString = strings.ToUpper(args[0][0:2]) + idAsString //Id is now the first two characters of the location + a sequential ID
 	var escalator = Escalator{
 		EscalatorID:  idAsString,
