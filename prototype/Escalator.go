@@ -156,7 +156,9 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	//create a Default-Escalator
 	stationAsByteArr := []byte("Kiel Hbf")
 	platformAsByteArr := []byte("Gleis 4")
-	defaultEsc, err := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
+	defaultEscAsByteArr, _ := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
+	var defaultEsc Escalator
+	json.Unmarshal(defaultEscAsByteArr, &defaultEsc)
 
 	idAsString, _ := createID(stub, "ticket")
 	timeString := getTransactionTimeString(stub)
