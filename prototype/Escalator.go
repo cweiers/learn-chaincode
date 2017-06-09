@@ -145,14 +145,13 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 	return nil, nil
 }
 
-
 // Creates a default ticket.
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	esc = args[0]
 
-	idAsString,_ := createID(stub, "ticket")
+	idAsString, _ := createID(stub, "ticket")
 	timeString := getTransactionTimeString(stub)
 
 	var ticket = Ticket{
@@ -175,27 +174,25 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	return nil, nil
 }
 
-//takes Trainstation and Platform as input 
+//takes Trainstation and Platform as input
 func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 2 {
 		return nil, errors.New("Wrong number of arguments, must be 2: Trainstation and Platform")
 	}
-	
+
 	idAsString, _ := createID("escalator")
-	idAsString = strings.ToUpper(args[0][0:2]) + idAsString  //Id is now the first two characters of the location + a sequential ID
+	idAsString = strings.ToUpper(args[0][0:2]) + idAsString //Id is now the first two characters of the location + a sequential ID
 	var escalator = Escalator{
-		EscalatorID: idAsString,
+		EscalatorID:  idAsString,
 		Trainstation: args[0],
-		Platform: args[1],	
-	}	
+		Platform:     args[1],
+	}
 	stub.PutState(idAsString, state)
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil	
+	return nil, nil
 }
-
-
 
 // Assign an existing Ticket to a ServiceProvider. Arguments should be TicketID and the name of the serviceprovider that the ticket gets assigned to.
 func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
@@ -223,9 +220,6 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 
 	return nil, nil
 }
-
-
-
 
 func (t *SimpleChaincode) getticketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	ticketCounterAsByteArr, err := stub.GetState("ticketCounter")
@@ -620,7 +614,6 @@ func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args [
 	return t.getTicketsByRange(stub, []string{"0001", s})
 }
 
-
 func (t *SimpleChaincode) assignMechanic(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 2 {
 		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and SpEmployee ")
@@ -799,7 +792,7 @@ func createID(stub shim.ChaincodeStubInterface, structName string) (string, erro
 	case "escalator":
 		idAsBytes, _ := stub.GetState("escalatorCounter")
 	default:
-		return (nil, errors.New("ID creation not supported for input string: Must be ticketCounter or escCounter"))
+		return nil, errors.New("ID creation not supported for input string: Must be ticketCounter or escCounter")
 	}
 
 	// get highest current ticket id number from worldstate, increment and set as
@@ -808,8 +801,7 @@ func createID(stub shim.ChaincodeStubInterface, structName string) (string, erro
 	idAsInt++                       // TODO This seems unnecessarily complicated.
 	idAsString := strconv.Itoa(idAsInt)
 	idAsString = leftPad2Len(idAsString, "0", 4)
-	
-	
+
 	stub.PutState(structName+"Counter", []byte(idAsString))
 	return idAsString, nil
 }
