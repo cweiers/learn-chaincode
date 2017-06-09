@@ -184,9 +184,9 @@ func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args
 	idAsString, _ := createID("escalator")
 	idAsString = strings.ToUpper(args[0][0:2]) + idAsString  //Id is now the first two characters of the location + a sequential ID
 	var escalator = Escalator{
-		EscalatorID: idAsString
-		Trainstation: args[0]
-		Platform: args[1]	
+		EscalatorID: idAsString,
+		Trainstation: args[0],
+		Platform: args[1],	
 	}	
 	stub.PutState(idAsString, state)
 	if err != nil {
