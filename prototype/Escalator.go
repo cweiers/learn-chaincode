@@ -49,17 +49,15 @@ func main() {
 	}
 }
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	err := stub.PutState("escalatorCounter", []byte("0"))
-	err2 := stub.PutState("ticketCounter", []byte("0"))
 
-	if err != nil {
-		return nil, err
-	}
-	if err2 != nil {
-		return nil, err
-	}
+	stub.PutState("escalatorCounter", []byte("0"))
+	stub.PutState("ticketCounter", []byte("0"))
 
-	return nil, nil
+	//create a default escalator
+	stationAsByteArr := []byte("Kiel Hbf")
+	platformAsByteArr := []byte("Gleis 4")
+	_, err := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
+
 }
 
 //Invoke is the entry point for all other asset altering functions called by an CC invocation
@@ -153,12 +151,10 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	//create a Default-Escalator
-	stationAsByteArr := []byte("Kiel Hbf")
-	platformAsByteArr := []byte("Gleis 4")
-	defaultEscAsByteArr, _ := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
 	var defaultEsc Escalator
-	json.Unmarshal(defaultEscAsByteArr, &defaultEsc)
+	defaultEscAsByteArr, _ := stub.GetState("KI0001")
+
+	json.Unmarshal(defaultEscAsByteArr, defaultEsc)
 
 	idAsString, _ := createID(stub, "ticket")
 	timeString := getTransactionTimeString(stub)
