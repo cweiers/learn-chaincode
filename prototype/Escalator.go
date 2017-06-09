@@ -798,11 +798,13 @@ func leftPad2Len(s string, padStr string, overallLen int) string {
 
 //creates a sequentiell ID for either a new Ticket or a new Escalator. structname should be "ticket" or "escalator" respectively
 func createID(stub shim.ChaincodeStubInterface, structName string) (string, error) {
+
+	var idAsBytes []byte
 	switch structName {
 	case "ticket":
-		idAsBytes, _ := stub.GetState("ticketCounter")
+		idAsBytes, _ = stub.GetState("ticketCounter")
 	case "escalator":
-		idAsBytes, _ := stub.GetState("escalatorCounter")
+		idAsBytes, _ = stub.GetState("escalatorCounter")
 	default:
 		return "", errors.New("ID creation not supported for input string: Must be ticketCounter or escalatorCounter")
 	}
