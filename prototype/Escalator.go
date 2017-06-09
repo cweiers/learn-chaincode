@@ -16,19 +16,26 @@ import (
 type SimpleChaincode struct {
 }
 
+type Escalator struct {
+	EscalatorID  string
+	Trainstation string
+	Platform     string
+	IsWorking    bool
+}
+
 type Ticket struct {
 	TicketID        string
 	Timestamp       string // time of ticket creation
 	Trainstation    string
 	Platform        string
-	Device          string // the device in need of repairs (i.e. left upwards escalator)
+	Device          string // the device in need of repairs (Some form of identifier for the escalator)
 	Status          string // current ticket status (not repair status), i.e. "OPEN". TODO: rework as some sort of enum to limit input.
 	TechPart        string // representing the defective part of the escalator
 	ErrorID         string
 	ErrorMessage    string
 	ServiceProvider string // the assigned service provider thats commissioned to do the repairs
-	SpEmployee      string // repairman assigned by service_provider
-	SpeCommentary   string // additional commentary, optionally to be filled out by the sp_employee
+	SpEmployee      string // mechanic assigned by ServiceProvider
+	SpeCommentary   string // additional commentary, optionally to be filled out by the SpEmployee
 	EstRepairTime   string
 	RepairStatus    string
 	FinalRepairTime string
@@ -43,7 +50,8 @@ func main() {
 }
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
-	err := stub.PutState("counter", []byte("0"))
+	err := stub.PutState("ticketCounter", []byte("0"))
+	//	err := stub.PutState("ticketCounter", []byte("0"))
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +62,8 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
+	case "createEscalator":
+		return t.createEscalator(stub, args)
 	case "createTicket":
 		return t.createTicket(stub, args)
 	case "createDefaultTicket":
@@ -83,8 +93,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	switch function {
 	case "getFullTicket":
 		return t.getFullTicket(stub, args)
-	case "getCounter":
-		return t.getCounter(stub, args)
+	case "getticketCounter":
+		return t.getticketCounter(stub, args)
 	case "getTicketsByRange":
 		return t.getTicketsByRange(stub, args)
 	case "getAllTickets":
@@ -106,12 +116,123 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	return nil, errors.New("Received unknown function query")
 }
 
-func (t *SimpleChaincode) getCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	counterAsByteArr, err := stub.GetState("counter")
-	if err != nil {
-		return nil, errors.New("Query failure for getCounter")
+// Create a new ticket and store it on the ledger with TicketID as key.
+//
+func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 7 {
+		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
-	return counterAsByteArr, nil
+	idAsString, _ := createID(stub, "ticket")
+	timeString := getTransactionTimeString(stub)
+	var ticket = Ticket{
+		TicketID:     idAsString,
+		Timestamp:    timeString,
+		Trainstation: args[0],
+		Platform:     args[1],
+		Device:       args[2],
+		Status:       "EINGETROFFEN",
+		TechPart:     args[3],
+		ErrorID:      args[4],
+		ErrorMessage: args[5],
+	}
+
+	state, err := json.Marshal(ticket)
+
+	stub.PutState(idAsString, state)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+
+// Creates a default ticket.
+//
+func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	esc = args[0]
+
+	idAsString,_ := createID(stub, "ticket")
+	timeString := getTransactionTimeString(stub)
+
+	var ticket = Ticket{
+		TicketID:     idAsString,
+		Timestamp:    timeString,
+		Trainstation: esc.Trainstation,
+		Platform:     esc.Platform,
+		Device:       "Rolltreppe " + esc.EscalatorID,
+		Status:       "Eingetroffen",
+		TechPart:     "Motor RTM-X 64",
+		ErrorID:      "#2356-102",
+		ErrorMessage: "Totalausfall",
+	}
+	state, err := json.Marshal(ticket)
+
+	stub.PutState(idAsString, state)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+//takes Trainstation and Platform as input 
+func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: Trainstation and Platform")
+	}
+	
+	idAsString, _ := createID("escalator")
+	idAsString = strings.ToUpper(args[0][0:2]) + idAsString  //Id is now the first two characters of the location + a sequential ID
+	var escalator = Escalator{
+		EscalatorID: idAsString
+		Trainstation: args[0]
+		Platform: args[1]	
+	}	
+	stub.PutState(idAsString, state)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil	
+}
+
+
+
+// Assign an existing Ticket to a ServiceProvider. Arguments should be TicketID and the name of the serviceprovider that the ticket gets assigned to.
+func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and ServiceProvider")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0]) //get ticket from world state as byte array
+	if err != nil {
+		return nil, err
+	}
+	ticket := new(Ticket)
+	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually)
+	ticket.ServiceProvider = args[1] //set new  ServiceProvider
+	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
+	ticket.RepairStatus = "Wird geprueft"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+
+
+
+func (t *SimpleChaincode) getticketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	ticketCounterAsByteArr, err := stub.GetState("ticketCounter")
+	if err != nil {
+		return nil, errors.New("Query failure for getticketCounter")
+	}
+	return ticketCounterAsByteArr, nil
 }
 
 func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
@@ -133,7 +254,7 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 func (t *SimpleChaincode) getTicketsByServiceProvider(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -182,7 +303,7 @@ func (t *SimpleChaincode) getTicketsByStatus(stub shim.ChaincodeStubInterface, a
 
 	//construct iterator
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -259,7 +380,7 @@ func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface,
 
 	//construct iterator
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -307,7 +428,7 @@ func (t *SimpleChaincode) getTicketsByMechanic(stub shim.ChaincodeStubInterface,
 func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -353,7 +474,7 @@ func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args [
 
 func (t *SimpleChaincode) getNewSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -400,7 +521,7 @@ func (t *SimpleChaincode) getNewSPTickets(stub shim.ChaincodeStubInterface, args
 func (t *SimpleChaincode) getAssignedSPTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//construct iterator
 	startKey := "0001"
-	MaxIdAsBytes, _ := stub.GetState("counter")
+	MaxIdAsBytes, _ := stub.GetState("ticketCounter")
 	endKey := string(MaxIdAsBytes[:])
 
 	resultsIterator, err := stub.RangeQueryState(startKey, endKey)
@@ -490,8 +611,8 @@ func (t *SimpleChaincode) getTicketsByRange(stub shim.ChaincodeStubInterface, ar
 }
 
 func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	counterAsByteArr, err := stub.GetState("counter")
-	s := string(counterAsByteArr[:])
+	ticketCounterAsByteArr, err := stub.GetState("ticketCounter")
+	s := string(ticketCounterAsByteArr[:])
 	if err != nil {
 		return nil, err
 	}
@@ -499,87 +620,6 @@ func (t *SimpleChaincode) getAllTickets(stub shim.ChaincodeStubInterface, args [
 	return t.getTicketsByRange(stub, []string{"0001", s})
 }
 
-// Create a new ticket and store it on the ledger with ticket_id as key.
-//
-func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 7 {
-		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
-	}
-	idAsString := createID(stub)
-	timeString := getTransactionTimeString(stub)
-	var ticket = Ticket{
-		TicketID:     idAsString,
-		Timestamp:    timeString,
-		Trainstation: args[1],
-		Platform:     args[2],
-		Device:       args[3],
-		Status:       "EINGETROFFEN",
-		TechPart:     args[4],
-		ErrorID:      args[5],
-		ErrorMessage: args[6],
-	}
-
-	state, err := json.Marshal(ticket)
-
-	stub.PutState(idAsString, state)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
-// Creates a default ticket. Maybe change to just call createTicket with arguments.
-//
-func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-
-	idAsString := createID(stub)
-	timeString := getTransactionTimeString(stub)
-	var ticket = Ticket{
-		TicketID:     idAsString,
-		Timestamp:    timeString,
-		Trainstation: "Bonn Hbf",
-		Platform:     "Gleis 5",
-		Device:       "Rolltreppe G5W2",
-		Status:       "Eingetroffen",
-		TechPart:     "Motor RTM-X 64",
-		ErrorID:      "#2356-102",
-		ErrorMessage: "Totalausfall",
-	}
-	state, err := json.Marshal(ticket)
-
-	stub.PutState(idAsString, state)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
-// Assign an existing Ticket to a ServiceProvider. Arguments should be TicketID and the name of the serviceprovider that the ticket gets assigned to.
-func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 2 {
-		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and ServiceProvider")
-	}
-
-	var state []byte
-	var err error
-
-	state, err = stub.GetState(args[0]) //get ticket from world state as byte array
-	if err != nil {
-		return nil, err
-	}
-	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually)
-	ticket.ServiceProvider = args[1] //set new  ServiceProvider
-	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
-	ticket.RepairStatus = "Wird geprueft"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
 
 func (t *SimpleChaincode) assignMechanic(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 2 {
@@ -738,7 +778,7 @@ func getTransactionTimeString(stub shim.ChaincodeStubInterface) string {
 	timePointer, _ := stub.GetTxTimestamp()
 
 	var t2 time.Time
-	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need display at this accuracy anyway
+	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need to display at this accuracy anyway
 
 	str := t2.Format("02 Jan 06 15:04 MST")
 	return str
@@ -751,14 +791,25 @@ func leftPad2Len(s string, padStr string, overallLen int) string {
 	return retStr[(len(retStr) - overallLen):]
 }
 
-func createID(stub shim.ChaincodeStubInterface) string {
+//creates a sequentiell ID for either a new Ticket or a new Escalator. structname should be "ticket" or "escalator" respectively
+func createID(stub shim.ChaincodeStubInterface, structName string) (string, error) {
+	switch structName {
+	case "ticket":
+		idAsBytes, _ := stub.GetState("ticketCounter")
+	case "escalator":
+		idAsBytes, _ := stub.GetState("escalatorCounter")
+	default:
+		return (nil, errors.New("ID creation not supported for input string: Must be ticketCounter or escCounter"))
+	}
 
-	idAsBytes, _ := stub.GetState("counter") // get highest current ticket id number from worldstate, increment and set as
-	str := string(idAsBytes[:])              //	TicketID for newly created Ticket & update highest running ticket number.
-	idAsInt, _ := strconv.Atoi(str)          //
-	idAsInt++                                // TODO This seems unnecessarily complicated.
+	// get highest current ticket id number from worldstate, increment and set as
+	str := string(idAsBytes[:])     //	TicketID for newly created Ticket & update highest running ticket number.
+	idAsInt, _ := strconv.Atoi(str) //
+	idAsInt++                       // TODO This seems unnecessarily complicated.
 	idAsString := strconv.Itoa(idAsInt)
 	idAsString = leftPad2Len(idAsString, "0", 4)
-	stub.PutState("counter", []byte(idAsString))
-	return idAsString
+	
+	
+	stub.PutState(structName+"Counter", []byte(idAsString))
+	return idAsString, nil
 }
