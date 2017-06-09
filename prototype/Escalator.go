@@ -196,6 +196,9 @@ func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args
 		Trainstation: args[0],
 		Platform:     args[1],
 	}
+
+	state, err := json.Marshal(escalator)
+
 	stub.PutState(idAsString, state)
 	if err != nil {
 		return nil, err
@@ -801,7 +804,7 @@ func createID(stub shim.ChaincodeStubInterface, structName string) (string, erro
 	case "escalator":
 		idAsBytes, _ := stub.GetState("escalatorCounter")
 	default:
-		return nil, errors.New("ID creation not supported for input string: Must be ticketCounter or escCounter")
+		return "", errors.New("ID creation not supported for input string: Must be ticketCounter or escalatorCounter")
 	}
 
 	// get highest current ticket id number from worldstate, increment and set as
