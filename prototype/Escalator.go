@@ -795,7 +795,11 @@ func leftPad2Len(s string, padStr string, overallLen int) string {
 	return retStr[(len(retStr) - overallLen):]
 }
 
-//creates a sequentiell ID for either a new Ticket or a new Escalator. structname should be "ticket" or "escalator" respectively
+func getEscalatorAsByteArr(stub shim.ChaincodeStubInterface, escalatorID string) ([]byte, error) {
+	return stub.GetState(escalatorID)
+}
+
+//creates a sequential ID for either a new Ticket or a new Escalator. structname should be "ticket" or "escalator" respectively
 func createID(stub shim.ChaincodeStubInterface, structName string) (string, error) {
 
 	var idAsBytes []byte
