@@ -57,9 +57,9 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	//create a default escalator
 	stationAsByteArr := []byte("Kiel Hbf")
 	platformAsByteArr := []byte("Gleis 4")
-	_, err := stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
+	stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
 
-	return nil, err
+	return nil, nil
 }
 
 //Invoke is the entry point for all other asset altering functions called by an CC invocation
