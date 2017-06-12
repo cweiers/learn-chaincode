@@ -37,6 +37,7 @@ type Ticket struct {
 	SpEmployee      string // mechanic assigned by ServiceProvider
 	SpeCommentary   string // additional commentary, optionally to be filled out by the SpEmployee
 	EstRepairTime   string
+	TimeOfArrival   string
 	RepairStatus    string
 	FinalRepairTime string
 	FinalReport     string
@@ -89,8 +90,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	}
 
 	return nil, errors.New("Received unknown function invocation: " + function)
-
 }
+
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
@@ -155,7 +156,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	var defaultEsc Escalator
 	defaultEscAsByteArr, _ := stub.GetState("KI0001")
 
-	json.Unmarshal(defaultEscAsByteArr, defaultEsc)
+	json.Unmarshal(defaultEscAsByteArr, &defaultEsc)
 
 	idAsString, _ := createID(stub, "ticket")
 	timeString := getTransactionTimeString(stub)
@@ -217,7 +218,7 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, err
 	}
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)    // translate back to struct (well, to "pointer to struct" actually)
+	json.Unmarshal(state, &ticket)   // translate back to struct (well, to "pointer to struct" actually)
 	ticket.ServiceProvider = args[1] //set new  ServiceProvider
 	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
 	ticket.RepairStatus = "Wird geprueft"
@@ -637,7 +638,7 @@ func (t *SimpleChaincode) assignMechanic(stub shim.ChaincodeStubInterface, args 
 	}
 
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
 	ticket.SpEmployee = args[1]
 	ticket.RepairStatus = "Ticket erhalten"
 	state, err = json.Marshal(ticket)
@@ -662,7 +663,7 @@ func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []
 	}
 
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
 	ticket.RepairStatus = "Techniker in Anfahrt"
 	state, err = json.Marshal(ticket)
 	if err != nil {
@@ -687,7 +688,8 @@ func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []str
 	}
 
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.TimeOfArrival = getTransactionTimeString(stub)
 	ticket.SpeCommentary = args[1]
 	ticket.EstRepairTime = args[2]
 	ticket.RepairStatus = "Techniker vor Ort"
@@ -713,7 +715,7 @@ func (t *SimpleChaincode) startRepair(stub shim.ChaincodeStubInterface, args []s
 	}
 
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
 	ticket.RepairStatus = "Reparatur begonnen"
 	state, err = json.Marshal(ticket)
 	if err != nil {
@@ -738,7 +740,8 @@ func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []
 	}
 
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.FinalRepairTime = getTransactionTimeString(stub)
 	ticket.RepairStatus = "Reparatur abgeschlossen"
 	ticket.Status = "ERLEDIGT"
 	state, err = json.Marshal(ticket)
@@ -763,7 +766,7 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 		return nil, err
 	}
 	ticket := new(Ticket)
-	json.Unmarshal(state, ticket)
+	json.Unmarshal(state, &ticket)
 	ticket.FinalRepairTime = args[1]
 	ticket.FinalReport = args[2]
 	ticket.RepairStatus = "Im Abschluss"
@@ -782,8 +785,7 @@ func getTransactionTimeString(stub shim.ChaincodeStubInterface) string {
 	var t2 time.Time
 	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need to display at this accuracy anyway
 
-	str := t2.Format("02 Jan 06 15:04 MST")
-	return str
+	return t2.Format("02 Jan 06 15:04 MST")
 }
 
 func leftPad2Len(s string, padStr string, overallLen int) string {
