@@ -53,12 +53,25 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	stub.PutState("escalatorCounter", []byte("0"))
 	stub.PutState("ticketCounter", []byte("0"))
+	createDefaultEscalator()
 
-	//create a default escalator
-	stationAsByteArr := []byte("Kiel Hbf")
-	platformAsByteArr := []byte("Gleis 4")
-	stub.InvokeChaincode("createEscalator", [][]byte{stationAsByteArr, platformAsByteArr})
+	return nil, nil
+}
+func createDefaultEscalator(stub shim.ChaincodeStubInterface) {
+	idAsString, _ := createID(stub, "escalator")
+	idAsString = strings.ToUpper(args[0][0:2]) + idAsString //Id is now the first two characters of the location + a sequential ID
+	var escalator = Escalator{
+		EscalatorID:  idAsString,
+		Trainstation: "Kiel Hbf",
+		Platform:     "Gleis 4",
+	}
 
+	state, err := json.Marshal(escalator)
+
+	stub.PutState(idAsString, state)
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
