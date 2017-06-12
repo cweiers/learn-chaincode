@@ -59,7 +59,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 }
 func createDefaultEscalator(stub shim.ChaincodeStubInterface) error {
 	idAsString, _ := createID(stub, "escalator")
-	idAsString = strings.ToUpper(args[0][0:2]) + idAsString //Id is now the first two characters of the location + a sequential ID
+	idAsString = "KI" + idAsString //Id is now the first two characters of the location + a sequential ID
 	var escalator = Escalator{
 		EscalatorID:  idAsString,
 		Trainstation: "Kiel Hbf",
