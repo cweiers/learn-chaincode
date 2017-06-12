@@ -57,7 +57,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	return nil, nil
 }
-func createDefaultEscalator(stub shim.ChaincodeStubInterface) {
+func createDefaultEscalator(stub shim.ChaincodeStubInterface) error {
 	idAsString, _ := createID(stub, "escalator")
 	idAsString = strings.ToUpper(args[0][0:2]) + idAsString //Id is now the first two characters of the location + a sequential ID
 	var escalator = Escalator{
@@ -70,9 +70,9 @@ func createDefaultEscalator(stub shim.ChaincodeStubInterface) {
 
 	stub.PutState(idAsString, state)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return nil, nil
+	return nil
 }
 
 //Invoke is the entry point for all other asset altering functions called by an CC invocation
