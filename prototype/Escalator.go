@@ -53,7 +53,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	stub.PutState("escalatorCounter", []byte("0"))
 	stub.PutState("ticketCounter", []byte("0"))
-	createDefaultEscalator()
+	createDefaultEscalator(stub)
 
 	return nil, nil
 }
