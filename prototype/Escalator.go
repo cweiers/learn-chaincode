@@ -13,6 +13,8 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
+const ()
+
 type SimpleChaincode struct {
 }
 
@@ -25,7 +27,7 @@ type Escalator struct {
 
 type Ticket struct {
 	TicketID        string
-	Timestamp       string // time of ticket creation
+	Timestamp       int64 // time of ticket creation
 	Trainstation    string
 	Platform        string
 	Device          string // the device in need of repairs (Some form of identifier for the escalator)
@@ -37,9 +39,9 @@ type Ticket struct {
 	SpEmployee      string // mechanic assigned by ServiceProvider
 	SpeCommentary   string // additional commentary, optionally to be filled out by the SpEmployee
 	EstRepairTime   string
-	TimeOfArrival   string
+	TimeOfArrival   int64
 	RepairStatus    string
-	FinalRepairTime string
+	FinalRepairTime int64
 	FinalReport     string
 }
 
@@ -49,6 +51,7 @@ func main() {
 		fmt.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
+
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	stub.PutState("escalatorCounter", []byte("0"))
@@ -57,6 +60,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	return nil, nil
 }
+
 func createDefaultEscalator(stub shim.ChaincodeStubInterface) error {
 	idAsString, _ := createID(stub, "escalator")
 	idAsString = "KI" + idAsString //Id is now the first two characters of the location + a sequential ID
@@ -110,8 +114,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	switch function {
 	case "getFullTicket":
 		return t.getFullTicket(stub, args)
-	case "getticketCounter":
-		return t.getticketCounter(stub, args)
+	case "getTicketCounter":
+		return t.getTicketCounter(stub, args)
 	case "getTicketsByRange":
 		return t.getTicketsByRange(stub, args)
 	case "getAllTickets":
@@ -140,7 +144,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, errors.New("Wrong number of arguments, must be 6: Timestamp, Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 	idAsString, _ := createID(stub, "ticket")
-	timeString := getTransactionTimeString(stub)
+	timeString := getTransactionTime(stub)
 	var ticket = Ticket{
 		TicketID:     idAsString,
 		Timestamp:    timeString,
@@ -172,7 +176,7 @@ func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, 
 	json.Unmarshal(defaultEscAsByteArr, &defaultEsc)
 
 	idAsString, _ := createID(stub, "ticket")
-	timeString := getTransactionTimeString(stub)
+	timeString := getTransactionTime(stub)
 
 	var ticket = Ticket{
 		TicketID:     idAsString,
@@ -244,10 +248,10 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 	return nil, nil
 }
 
-func (t *SimpleChaincode) getticketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) getTicketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	ticketCounterAsByteArr, err := stub.GetState("ticketCounter")
 	if err != nil {
-		return nil, errors.New("Query failure for getticketCounter")
+		return nil, errors.New("Query failure for getTicketCounter")
 	}
 	return ticketCounterAsByteArr, nil
 }
@@ -256,8 +260,6 @@ func (t *SimpleChaincode) getFullTicket(stub shim.ChaincodeStubInterface, args [
 	if len(args) != 1 {
 		return nil, errors.New("Wrong number of arguments. Must be (1): TicketID")
 	}
-
-	//	var ticketAsByteArr []byte
 
 	ticketAsByteArr, err := stub.GetState(args[0])
 
@@ -702,7 +704,7 @@ func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []str
 
 	ticket := new(Ticket)
 	json.Unmarshal(state, &ticket)
-	ticket.TimeOfArrival = getTransactionTimeString(stub)
+	ticket.TimeOfArrival = getTransactionTime(stub)
 	ticket.SpeCommentary = args[1]
 	ticket.EstRepairTime = args[2]
 	ticket.RepairStatus = "Techniker vor Ort"
@@ -754,7 +756,7 @@ func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []
 
 	ticket := new(Ticket)
 	json.Unmarshal(state, &ticket)
-	ticket.FinalRepairTime = getTransactionTimeString(stub)
+	ticket.FinalRepairTime = getTransactionTime(stub)
 	ticket.RepairStatus = "Reparatur abgeschlossen"
 	ticket.Status = "ERLEDIGT"
 	state, err = json.Marshal(ticket)
@@ -792,13 +794,13 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 	return nil, nil
 }
 
-func getTransactionTimeString(stub shim.ChaincodeStubInterface) string {
+func getTransactionTime(stub shim.ChaincodeStubInterface) int64 {
 	timePointer, _ := stub.GetTxTimestamp()
+	return timePointer.Seconds
+	//	var t2 time.Time
+	//	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need to display at this accuracy anyway
 
-	var t2 time.Time
-	t2 = time.Unix(timePointer.Seconds, 0) // set nanos as zero as we don`t need to display at this accuracy anyway
-
-	return t2.Format("02 Jan 06 15:04 MST")
+	//	return t2
 }
 
 func leftPad2Len(s string, padStr string, overallLen int) string {
