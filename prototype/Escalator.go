@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -769,8 +768,8 @@ func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []
 }
 
 func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 3 {
-		return nil, errors.New("Wrong number of arguments, must be 3: TicketID , final Repairtime and final commentary")
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and final commentary")
 	}
 
 	var state []byte
@@ -782,8 +781,7 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 	}
 	ticket := new(Ticket)
 	json.Unmarshal(state, &ticket)
-	ticket.FinalRepairTime = args[1]
-	ticket.FinalReport = args[2]
+	ticket.FinalReport = args[1]
 	ticket.RepairStatus = "Im Abschluss"
 	state, err = json.Marshal(ticket)
 	if err != nil {
