@@ -117,6 +117,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
+	case "getSLA":
+		return t.getSLA(stub, args)
 	case "getFullTicket":
 		return t.getFullTicket(stub, args)
 	case "getTicketCounter":
@@ -144,12 +146,12 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 
 // create a service level agreement for a given ServiceProvider. Input should be the ServiceProvider, the time in seconds from ticket creation
 // until arrival of a mechanic, and the time in seconds from ticket creation until the escalator repair is done.
-func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []string) error {
+func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	var sla ServiceLevelAgreement
 	sla.ServiceProvider = args[0]
-	sla.timeToArrive = args[1]
-	sla.timeToRepair = args[2]
+	sla.TimeToArriveimeToArrive = args[1]
+	sla.TimeToRepair = args[2]
 	sla.None = 0
 	sla.Light = 0
 	sla.Severe = 0
@@ -161,12 +163,12 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 		return err
 	}
 	stub.PutState(slaKey, slaAsByteArr)
-	return nil
+	return slaAsByteArr, nil
 }
 
 //update a SLA from the world state with new values. A value for both timeToArrive and timeToRepair has to be supplied.
 func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []string) error {
-	if args.len != 3 {
+	if len(args) != 3 {
 		return errors.New("Needs name of the service provider, timeToArrive and timeToRepair. If one of the latter two does not change, the old value still has to be supplied")
 	}
 
@@ -282,7 +284,7 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 		return nil, err
 	}
 	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)   // translate back to struct (well, to "pointer to struct" actually)
+	json.Unmarshal(state, &ticket)   // translate back to struct
 	ticket.ServiceProvider = args[1] //set new  ServiceProvider
 	ticket.Status = "ZUGEWIESEN"     //update status to "assigned"
 	ticket.RepairStatus = "Wird geprueft"
@@ -295,10 +297,21 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 	return nil, nil
 }
 
+//Input should be the name of the serviceprovider
+func (t *SimpleChaincode) getSLA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	slaAsByteArr, err := stub.GetState("sla" + strings.ToLower(args[0]))
+	if err != nil {
+		return nil, err
+	}
+	return slaAsByteArr, nil
+
+}
+
 func (t *SimpleChaincode) getTicketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	ticketCounterAsByteArr, err := stub.GetState("ticketCounter")
 	if err != nil {
-		return nil, errors.New("Query failure for getTicketCounter")
+		return nil, err
 	}
 	return ticketCounterAsByteArr, nil
 }
@@ -811,9 +824,9 @@ func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []
 	ttA := ticket.TimeOfArrival - ticket.Timestamp   //time to arrive
 	ttR := ticket.FinalRepairTime - ticket.Timestamp //time to repair
 	switch {
-	case (tta < sla.TimeToArrive) && (ttR < sla.TimeToRepair): //All good
+	case (ttA < sla.TimeToArrive) && (ttR < sla.TimeToRepair): //All good
 		sla.None += 1
-	case (tta > sla.TimeToArrive+10800) || (ttR > sla.TimeToRepair+14400): //mechanic arrived more than 10800s = 3hours late OR it took more than 4 hours longer to repair overall
+	case (ttA > sla.TimeToArrive+10800) || (ttR > sla.TimeToRepair+14400): //mechanic arrived more than 10800s = 3hours late OR it took more than 4 hours longer to repair overall
 		sla.Severe += 1
 	default:
 		sla.Light += 1
