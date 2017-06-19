@@ -75,7 +75,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 		Platform:     "Gleis 4",
 	}
 
-	state, err := json.Marshal(escalator)
+	state, _ := json.Marshal(escalator)
 
 	stub.PutState(idAsString, state)
 
