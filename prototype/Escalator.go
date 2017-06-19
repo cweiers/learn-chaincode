@@ -150,8 +150,8 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 
 	var sla ServiceLevelAgreement
 	sla.ServiceProvider = args[0]
-	sla.TimeToArrive = strconv.ParseInt(args[1], 10, 64)
-	sla.TimeToRepair = strconv.ParseInt(args[2], 10, 64)
+	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
+	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
 	sla.None = 0
 	sla.Light = 0
 	sla.Severe = 0
@@ -178,8 +178,8 @@ func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []str
 		return err
 	}
 	json.Unmarshal(slaAsByteArr, &sla)
-	sla.timeToArrive = strconv.ParseInt(args[1], 10, 64)
-	sla.timeToRepair = strconv.ParseInt(args[2], 10, 64)
+	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
+	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
 
 	slaAsByteArr, _ = json.Marshal(sla)
 	stub.PutState("sla"+strings.ToLower(args[0]), slaAsByteArr)
