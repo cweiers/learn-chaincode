@@ -160,7 +160,7 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 	slaAsByteArr, err := json.Marshal(sla)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 	stub.PutState(slaKey, slaAsByteArr)
 	return slaAsByteArr, nil
