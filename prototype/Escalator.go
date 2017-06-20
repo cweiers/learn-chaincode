@@ -86,6 +86,8 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
+	case "reportFailure":
+		return t.reportFailure(stub, args)
 	case "createSLA":
 		return t.createSLA(stub, args)
 	case "createEscalator":
@@ -114,6 +116,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	return nil, errors.New("Received unknown function invocation: " + function)
 }
 
+//Query is the entry point for all read-only operations
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
@@ -143,6 +146,10 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	fmt.Println("query did not find func: " + function)
 	return nil, errors.New("Received unknown function query")
 }
+
+//..............................................
+//............INVOKE FUNCTIONS..................
+//..............................................
 
 // create a service level agreement for a given ServiceProvider. Input should be the ServiceProvider, the time in seconds from ticket creation
 // until arrival of a mechanic, and the time in seconds from ticket creation until the escalator repair is done.
@@ -186,6 +193,31 @@ func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []str
 	return nil
 }
 
+//Takes either EscalatorID and "true" OR EscalatorID, "false", and 3 more : TechPart, ErrorID, and ErrorMsg
+func (t *SimpleChaincode) setEscalatorState(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	var esc Escalator
+	escAsByteArr, err := stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(escAsByteArr, &esc)
+
+	if len(args) == 2 && strconv.ParseBool(args[1]) == true {
+		esc.IsWorking = true
+		escAsByteArr, _ = json.Marshal(esc)
+		stub.PutState(args[0], escAsByteArr)
+		return nil, nil
+	}
+	if len(args) == 5 && strconv.ParseBool(args[1]) == false {
+		esc.IsWorking = false
+		escAsByteArr, _ = json.Marshal(esc)
+		stub.PutState(args[0], escAsByteArr)
+		return t.createTicket(esc.Trainstation, esc.Platform, args[0], args[2], args[3], args[4])
+	}
+	return nil, errors.New("Failed to properly set escalator status. Wrong number of arguments ?")
+}
+
 // Create a new ticket and store it on the ledger with TicketID as key.
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
@@ -220,7 +252,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	var defaultEsc Escalator
-	defaultEscAsByteArr, _ := stub.GetState("KI0001")
+	defaultEscAsByteArr, _ := stub.GetState("DO0001")
 
 	json.Unmarshal(defaultEscAsByteArr, &defaultEsc)
 
@@ -297,7 +329,166 @@ func (t *SimpleChaincode) assignTicket(stub shim.ChaincodeStubInterface, args []
 	return nil, nil
 }
 
+func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	var state []byte
+	var err error
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.RepairStatus = "Techniker in Anfahrt"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 3 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID,SpeCommentary and EstRepairTime")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.TimeOfArrival = getTransactionTime(stub)
+	ticket.SpeCommentary = args[1]
+	ticket.EstRepairTime = args[2]
+	ticket.RepairStatus = "Techniker vor Ort"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+func (t *SimpleChaincode) startRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.RepairStatus = "Reparatur begonnen"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
+	}
+
+	state, err := stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	ticket := new(Ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.FinalRepairTime = getTransactionTime(stub)
+	ticket.RepairStatus = "Reparatur abgeschlossen"
+	ticket.Status = "ERLEDIGT"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	//update SLA depending on timestamps
+	var sla ServiceLevelAgreement
+	slaAsByteArr, _ := stub.GetState("sla" + strings.ToLower(ticket.ServiceProvider))
+	json.Unmarshal(slaAsByteArr, &sla)
+
+	ttA := ticket.TimeOfArrival - ticket.Timestamp   //time to arrive
+	ttR := ticket.FinalRepairTime - ticket.Timestamp //time to repair
+	switch {
+	case (ttA < sla.TimeToArrive) && (ttR < sla.TimeToRepair): //All good
+		sla.None += 1
+	case (ttA > sla.TimeToArrive+10800) || (ttR > sla.TimeToRepair+14400): //mechanic arrived more than 10800s = 3hours late OR it took more than 4 hours longer to repair overall
+		sla.Severe += 1
+	default:
+		sla.Light += 1
+	}
+
+	slaAsByteArr, _ = json.Marshal(sla)
+	stub.PutState("sla"+strings.ToLower(ticket.ServiceProvider), slaAsByteArr)
+	return nil, nil
+}
+
+func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 2 {
+		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and final commentary")
+	}
+
+	var state []byte
+	var err error
+
+	state, err = stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+	ticket := new(Ticket)
+	json.Unmarshal(state, &ticket)
+	ticket.FinalReport = args[1]
+	ticket.RepairStatus = "Im Abschluss"
+	state, err = json.Marshal(ticket)
+	if err != nil {
+		return nil, err
+	}
+	stub.PutState(args[0], state) //write updated ticket to world state again
+
+	return nil, nil
+}
+
+//..............................................
+//............QUERY FUNCTIONS..................
+//..............................................
+
 //Input should be the name of the serviceprovider
+func (t *SimpleChaincode) getEscalatorState(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	escAsByteArr, err := stub.GetState(args[0])
+	if err != nil {
+		return nil, err
+	}
+	var esc Escalator
+	json.Unmarshal(escAsByteArr, &esc)
+	var byteArr []byte
+	return strconv.AppendBool(byteArr, esc.IsWorking), nil
+
+}
+
 func (t *SimpleChaincode) getSLA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	slaAsByteArr, err := stub.GetState("sla" + strings.ToLower(args[0]))
@@ -305,7 +496,6 @@ func (t *SimpleChaincode) getSLA(stub shim.ChaincodeStubInterface, args []string
 		return nil, err
 	}
 	return slaAsByteArr, nil
-
 }
 
 func (t *SimpleChaincode) getTicketCounter(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
@@ -719,148 +909,9 @@ func (t *SimpleChaincode) assignMechanic(stub shim.ChaincodeStubInterface, args 
 	return nil, nil
 }
 
-func (t *SimpleChaincode) startJourney(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
-	}
-
-	var state []byte
-	var err error
-	state, err = stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)
-	ticket.RepairStatus = "Techniker in Anfahrt"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
-
-func (t *SimpleChaincode) onArrival(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 3 {
-		return nil, errors.New("Wrong number of arguments, must be 2: TicketID,SpeCommentary and EstRepairTime")
-	}
-
-	var state []byte
-	var err error
-
-	state, err = stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)
-	ticket.TimeOfArrival = getTransactionTime(stub)
-	ticket.SpeCommentary = args[1]
-	ticket.EstRepairTime = args[2]
-	ticket.RepairStatus = "Techniker vor Ort"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
-func (t *SimpleChaincode) startRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
-	}
-
-	var state []byte
-	var err error
-
-	state, err = stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)
-	ticket.RepairStatus = "Reparatur begonnen"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
-
-func (t *SimpleChaincode) finishRepair(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Wrong number of arguments, must be 1: TicketID")
-	}
-
-	state, err := stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)
-	ticket.FinalRepairTime = getTransactionTime(stub)
-	ticket.RepairStatus = "Reparatur abgeschlossen"
-	ticket.Status = "ERLEDIGT"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	//update SLA depending on timestamps
-	var sla ServiceLevelAgreement
-	slaAsByteArr, _ := stub.GetState("sla" + strings.ToLower(ticket.ServiceProvider))
-	json.Unmarshal(slaAsByteArr, &sla)
-
-	ttA := ticket.TimeOfArrival - ticket.Timestamp   //time to arrive
-	ttR := ticket.FinalRepairTime - ticket.Timestamp //time to repair
-	switch {
-	case (ttA < sla.TimeToArrive) && (ttR < sla.TimeToRepair): //All good
-		sla.None += 1
-	case (ttA > sla.TimeToArrive+10800) || (ttR > sla.TimeToRepair+14400): //mechanic arrived more than 10800s = 3hours late OR it took more than 4 hours longer to repair overall
-		sla.Severe += 1
-	default:
-		sla.Light += 1
-	}
-
-	slaAsByteArr, _ = json.Marshal(sla)
-	stub.PutState("sla"+strings.ToLower(ticket.ServiceProvider), slaAsByteArr)
-	return nil, nil
-}
-
-func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 2 {
-		return nil, errors.New("Wrong number of arguments, must be 2: TicketID and final commentary")
-	}
-
-	var state []byte
-	var err error
-
-	state, err = stub.GetState(args[0])
-	if err != nil {
-		return nil, err
-	}
-	ticket := new(Ticket)
-	json.Unmarshal(state, &ticket)
-	ticket.FinalReport = args[1]
-	ticket.RepairStatus = "Im Abschluss"
-	state, err = json.Marshal(ticket)
-	if err != nil {
-		return nil, err
-	}
-	stub.PutState(args[0], state) //write updated ticket to world state again
-
-	return nil, nil
-}
+//..............................................
+//............INTERNAL UTILITY FUNCTIONS........
+//..............................................
 
 func getTransactionTime(stub shim.ChaincodeStubInterface) int64 {
 	timePointer, _ := stub.GetTxTimestamp()
