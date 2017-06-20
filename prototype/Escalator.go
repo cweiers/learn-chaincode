@@ -223,7 +223,7 @@ func (t *SimpleChaincode) setEscalatorState(stub shim.ChaincodeStubInterface, ar
 // Create a new ticket and store it on the ledger with TicketID as key.
 //
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	if len(args) != 7 {
+	if len(args) != 6 {
 		return nil, errors.New("Wrong number of arguments, must be 6: Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
 	}
 	idAsString, _ := createID(stub, "ticket")
