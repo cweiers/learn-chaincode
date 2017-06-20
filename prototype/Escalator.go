@@ -215,7 +215,7 @@ func (t *SimpleChaincode) setEscalatorState(stub shim.ChaincodeStubInterface, ar
 		esc.IsWorking = false
 		escAsByteArr, _ = json.Marshal(esc)
 		stub.PutState(args[0], escAsByteArr)
-		return t.createTicket(esc.Trainstation, esc.Platform, args[0], args[2], args[3], args[4])
+		return t.createTicket(stub, esc.Trainstation, esc.Platform, args[0], args[2], args[3], args[4])
 	}
 	return nil, errors.New("Failed to properly set escalator status. Wrong number of arguments ?")
 }
