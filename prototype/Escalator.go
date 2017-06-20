@@ -86,8 +86,8 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
-	case "reportFailure":
-		return t.reportFailure(stub, args)
+	case "setEscalatorState":
+		return t.setEscalatorState(stub, args)
 	case "createSLA":
 		return t.createSLA(stub, args)
 	case "createEscalator":
@@ -120,6 +120,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
+	case "getEscalatorState":
+		return t.getEscalatorState(stub, args)
 	case "getSLA":
 		return t.getSLA(stub, args)
 	case "getFullTicket":
@@ -202,14 +204,14 @@ func (t *SimpleChaincode) setEscalatorState(stub shim.ChaincodeStubInterface, ar
 		return nil, err
 	}
 	json.Unmarshal(escAsByteArr, &esc)
-
-	if len(args) == 2 && strconv.ParseBool(args[1]) == true {
+	escState, _ := strconv.ParseBool(args[1])
+	if len(args) == 2 && escState == true {
 		esc.IsWorking = true
 		escAsByteArr, _ = json.Marshal(esc)
 		stub.PutState(args[0], escAsByteArr)
 		return nil, nil
 	}
-	if len(args) == 5 && strconv.ParseBool(args[1]) == false {
+	if len(args) == 5 && escState == false {
 		esc.IsWorking = false
 		escAsByteArr, _ = json.Marshal(esc)
 		stub.PutState(args[0], escAsByteArr)
