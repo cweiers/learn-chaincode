@@ -731,8 +731,7 @@ func (t *SimpleChaincode) getWIPTickets(stub shim.ChaincodeStubInterface, args [
 
 		// check if ticket has given ServiceProvider
 		if strings.EqualFold(tempTicket.ServiceProvider, args[0]) &&
-			(strings.EqualFold(tempTicket.RepairStatus, "Reparatur begonnen") || strings.EqualFold(tempTicket.RepairStatus, "Techniker vor Ort")) {
-
+			(strings.EqualFold(tempTicket.RepairStatus, "Reparatur begonnen") || strings.EqualFold(tempTicket.RepairStatus, "Techniker vor Ort") || strings.EqualFold(tempTicket.RepairStatus, "Im Abschluss")) {
 			// Add a comma before array members, suppress it for the first array member
 			if bArrayMemberAlreadyWritten == true {
 				buffer.WriteString(",")
