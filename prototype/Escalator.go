@@ -62,7 +62,7 @@ func main() {
 
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
-	//initialise counters for ticket and escalator ID creation
+	//initialize counters for ticket and escalator ID creation
 	stub.PutState("escalatorCounter", []byte("0"))
 	stub.PutState("ticketCounter", []byte("0"))
 
@@ -71,8 +71,9 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	idAsString = "DO" + idAsString
 	var escalator = Escalator{
 		EscalatorID:  idAsString,
-		Trainstation: "Dortmung Hbf",
+		Trainstation: "Dortmund Hbf",
 		Platform:     "Gleis 4",
+		IsWorking:    true,
 	}
 
 	state, _ := json.Marshal(escalator)
@@ -90,6 +91,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.setEscalatorState(stub, args)
 	case "createSLA":
 		return t.createSLA(stub, args)
+	case "updateSLA":
+		return t.updateSLA(stub, args)
 	case "createEscalator":
 		return t.createEscalator(stub, args)
 	case "createTicket":
@@ -294,6 +297,7 @@ func (t *SimpleChaincode) createEscalator(stub shim.ChaincodeStubInterface, args
 		EscalatorID:  idAsString,
 		Trainstation: args[0],
 		Platform:     args[1],
+		IsWorking:    true,
 	}
 
 	state, err := json.Marshal(escalator)
@@ -949,7 +953,7 @@ func createID(stub shim.ChaincodeStubInterface, structName string) (string, erro
 	// get highest current ticket id number from worldstate, increment and set as
 	str := string(idAsBytes[:])     //	TicketID for newly created Ticket & update highest running ticket number.
 	idAsInt, _ := strconv.Atoi(str) //
-	idAsInt++                       // TODO This seems unnecessarily complicated.
+	idAsInt++
 	idAsString := strconv.Itoa(idAsInt)
 	idAsString = leftPad2Len(idAsString, "0", 4)
 
