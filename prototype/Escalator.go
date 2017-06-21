@@ -179,15 +179,15 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 }
 
 //update a SLA from the world state with new values. A value for both timeToArrive and timeToRepair has to be supplied.
-func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []string) error {
+func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 3 {
-		return errors.New("Needs name of the service provider, timeToArrive and timeToRepair. If one of the latter two does not change, the old value still has to be supplied")
+		return nil, errors.New("Needs name of the service provider, timeToArrive and timeToRepair. If one of the latter two does not change, the old value still has to be supplied")
 	}
 
 	var sla ServiceLevelAgreement
 	slaAsByteArr, err := stub.GetState("sla" + strings.ToLower(args[0]))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	json.Unmarshal(slaAsByteArr, &sla)
 	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
@@ -195,7 +195,7 @@ func (t *SimpleChaincode) updateSLA(stub shim.ChaincodeStubInterface, args []str
 
 	slaAsByteArr, _ = json.Marshal(sla)
 	stub.PutState("sla"+strings.ToLower(args[0]), slaAsByteArr)
-	return nil
+	return nil, nil
 }
 
 //Takes either EscalatorID and "true" OR EscalatorID, "false", and 3 more : TechPart, ErrorID, and ErrorMsg
