@@ -167,9 +167,9 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 	sla.ServiceProvider = args[0]
 	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
 	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
-	sla.None, _ = strconv.ParseInt(args[3], 10, 64)
-	sla.Light, _ = strconv.ParseInt(args[4], 10, 64)
-	sla.Severe, _ = strconv.ParseInt(args[5], 10, 64)
+	sla.None, _ = strconv.ParseInt(args[3], 10, 0)
+	sla.Light, _ = strconv.ParseInt(args[4], 10, 0)
+	sla.Severe, _ = strconv.ParseInt(args[5], 10, 0)
 	slaKey := "sla" + strings.ToLower(args[0])
 
 	slaAsByteArr, err := json.Marshal(sla)
