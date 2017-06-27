@@ -71,10 +71,10 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	t.createEscalator([]string{"Dortmund Hbf", "Gleis 4"})
 
 	//init SLAs for stats/data board with semi-reasonable numbers
-	t.createSLA([]string{"Thyssen", "7200", "28800", "119", "21", "10"})
-	t.createSLA([]string{"Otis", "7200", "28800", "97", "20", "10"})
-	t.createSLA([]string{"Schindler", "7200", "28800", "90", "3", "8"})
-	t.createSLA([]string{"DBIntern", "7200", "28800", "81", "11", "10"})
+	t.createSLA(stub, []string{"Thyssen", "7200", "28800", "119", "21", "10"})
+	t.createSLA(stub, []string{"Otis", "7200", "28800", "97", "20", "10"})
+	t.createSLA(stub, []string{"Schindler", "7200", "28800", "90", "3", "8"})
+	t.createSLA(stub, []string{"DBIntern", "7200", "28800", "81", "11", "10"})
 	//	idAsString, _ := createID(stub, "escalator")
 	//	idAsString = "DO" + idAsString
 	//	var escalator = Escalator{
