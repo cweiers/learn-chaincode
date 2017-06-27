@@ -67,14 +67,24 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	stub.PutState("ticketCounter", []byte("0"))
 
 	//create an escalator to use with createDefaultTicket
-	idAsString, _ := createID(stub, "escalator")
-	idAsString = "DO" + idAsString
-	var escalator = Escalator{
-		EscalatorID:  idAsString,
-		Trainstation: "Dortmund Hbf",
-		Platform:     "Gleis 4",
-		IsWorking:    true,
-	}
+
+	t.createEscalator([]string{"Dortmund Hbf", "Gleis 4"})
+
+	//init SLAs for stats/data board with semi-reasonable numbers
+	t.createSLA([]string{"Thyssen", "7200", "28800", "119", "21", "10"})
+	t.createSLA([]string{"Otis", "7200", "28800", "97", "20", "10"})
+	t.createSLA([]string{"Schindler", "7200", "28800", "90", "3", "8"})
+	t.createSLA([]string{"DBIntern", "7200", "28800", "81", "11", "10"})
+	//	idAsString, _ := createID(stub, "escalator")
+	//	idAsString = "DO" + idAsString
+	//	var escalator = Escalator{
+	//		EscalatorID:  idAsString,
+	//		Trainstation: "Dortmund Hbf",
+	//		Platform:     "Gleis 4",
+	//		IsWorking:    true,
+	//	}
+
+	t.createSLA("")
 
 	state, _ := json.Marshal(escalator)
 
@@ -164,9 +174,9 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 	sla.ServiceProvider = args[0]
 	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
 	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
-	sla.None = 0
-	sla.Light = 0
-	sla.Severe = 0
+	sla.None = strconv.ParseInt(args[3], 10, 64)
+	sla.Light = strconv.ParseInt(args[4], 10, 64)
+	sla.Severe = strconv.ParseInt(args[5], 10, 64)
 	slaKey := "sla" + strings.ToLower(args[0])
 
 	slaAsByteArr, err := json.Marshal(sla)
@@ -225,7 +235,6 @@ func (t *SimpleChaincode) setEscalatorState(stub shim.ChaincodeStubInterface, ar
 }
 
 // Create a new ticket and store it on the ledger with TicketID as key.
-//
 func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 6 {
 		return nil, errors.New("Wrong number of arguments, must be 6: Trainstation, Platform, Device, TechPart, ErrorID and ErrorMessage")
@@ -483,7 +492,6 @@ func (t *SimpleChaincode) writeFinalReport(stub shim.ChaincodeStubInterface, arg
 //............QUERY FUNCTIONS..................
 //..............................................
 
-//Input should be the name of the serviceprovider
 func (t *SimpleChaincode) getEscalatorState(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	escAsByteArr, err := stub.GetState(args[0])
 	if err != nil {
@@ -496,6 +504,7 @@ func (t *SimpleChaincode) getEscalatorState(stub shim.ChaincodeStubInterface, ar
 
 }
 
+//Input should be the name of the serviceprovider
 func (t *SimpleChaincode) getSLA(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	slaAsByteArr, err := stub.GetState("sla" + strings.ToLower(args[0]))
