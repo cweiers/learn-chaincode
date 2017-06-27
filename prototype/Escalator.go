@@ -21,9 +21,9 @@ type ServiceLevelAgreement struct {
 	TimeToArrive    int64 // contractually agreed time for a mechanic to arrive
 	TimeToRepair    int64 // contractually agreed time for the repairs to be finished
 	// representing the number of times the agreement was fulfilled, slightly violated or severely violated
-	None   int //no violation
-	Light  int
-	Severe int
+	None   int64 //no violation
+	Light  int64
+	Severe int64
 }
 
 type Escalator struct {
@@ -167,9 +167,9 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 	sla.ServiceProvider = args[0]
 	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
 	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
-	sla.None, _ = strconv.ParseInt(args[3], 10, 0)
-	sla.Light, _ = strconv.ParseInt(args[4], 10, 0)
-	sla.Severe, _ = strconv.ParseInt(args[5], 10, 0)
+	sla.None, _ = strconv.ParseInt(args[3], 10, 64)
+	sla.Light, _ = strconv.ParseInt(args[4], 10, 64)
+	sla.Severe, _ = strconv.ParseInt(args[5], 10, 64)
 	slaKey := "sla" + strings.ToLower(args[0])
 
 	slaAsByteArr, err := json.Marshal(sla)
