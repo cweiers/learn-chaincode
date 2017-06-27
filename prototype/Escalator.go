@@ -68,7 +68,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	//create an escalator to use with createDefaultTicket
 
-	t.createEscalator([]string{"Dortmund Hbf", "Gleis 4"})
+	t.createEscalator(stub, []string{"Dortmund Hbf", "Gleis 4"})
 
 	//init SLAs for stats/data board with semi-reasonable numbers
 	t.createSLA(stub, []string{"Thyssen", "7200", "28800", "119", "21", "10"})
@@ -83,13 +83,6 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	//		Platform:     "Gleis 4",
 	//		IsWorking:    true,
 	//	}
-
-	t.createSLA("")
-
-	state, _ := json.Marshal(escalator)
-
-	stub.PutState(idAsString, state)
-
 	return nil, nil
 }
 
@@ -174,9 +167,9 @@ func (t *SimpleChaincode) createSLA(stub shim.ChaincodeStubInterface, args []str
 	sla.ServiceProvider = args[0]
 	sla.TimeToArrive, _ = strconv.ParseInt(args[1], 10, 64)
 	sla.TimeToRepair, _ = strconv.ParseInt(args[2], 10, 64)
-	sla.None = strconv.ParseInt(args[3], 10, 64)
-	sla.Light = strconv.ParseInt(args[4], 10, 64)
-	sla.Severe = strconv.ParseInt(args[5], 10, 64)
+	sla.None, _ = strconv.ParseInt(args[3], 10, 64)
+	sla.Light, _ = strconv.ParseInt(args[4], 10, 64)
+	sla.Severe, _ = strconv.ParseInt(args[5], 10, 64)
 	slaKey := "sla" + strings.ToLower(args[0])
 
 	slaAsByteArr, err := json.Marshal(sla)
