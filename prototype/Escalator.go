@@ -126,8 +126,6 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
-	case "getSLASet":
-		return t.getSLASet(stub, args)
 	case "getEscalatorState":
 		return t.getEscalatorState(stub, args)
 	case "getSLA":
