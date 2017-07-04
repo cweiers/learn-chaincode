@@ -15,6 +15,13 @@ import (
 type SimpleChaincode struct {
 }
 
+type Escalator struct {
+	EscalatorID  string
+	Trainstation string
+	Platform     string
+	IsWorking    bool
+}
+
 //simple SLA.
 type ServiceLevelAgreement struct {
 	ServiceProvider string
@@ -24,13 +31,6 @@ type ServiceLevelAgreement struct {
 	None   int64 //no violation
 	Light  int64
 	Severe int64
-}
-
-type Escalator struct {
-	EscalatorID  string
-	Trainstation string
-	Platform     string
-	IsWorking    bool
 }
 
 type Ticket struct {
@@ -72,8 +72,8 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 
 	//init SLAs for stats/data board with semi-reasonable numbers
 	t.createSLA(stub, []string{"Thyssen", "7200", "28800", "119", "21", "10"})
-	t.createSLA(stub, []string{"Otis", "7200", "28800", "97", "20", "10"})
 	t.createSLA(stub, []string{"Schindler", "7200", "28800", "90", "3", "8"})
+	t.createSLA(stub, []string{"Otis", "7200", "28800", "97", "20", "10"})
 	t.createSLA(stub, []string{"DBIntern", "7200", "28800", "81", "11", "10"})
 	//	idAsString, _ := createID(stub, "escalator")
 	//	idAsString = "DO" + idAsString
@@ -126,6 +126,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	switch function {
+	case "getSLASet":
+		return t.getSLASet(stub, args)
 	case "getEscalatorState":
 		return t.getEscalatorState(stub, args)
 	case "getSLA":
