@@ -39,7 +39,7 @@ type Ticket struct {
 	Trainstation    string
 	Platform        string
 	Device          string // the device in need of repairs (Some form of identifier for the escalator)
-	Status          string // current ticket status (not repair status), i.e. "OPEN". TODO: rework as some sort of enum to limit input.
+	Status          string // current ticket status (not repair status), i.e. "OPEN".
 	TechPart        string // representing the defective part of the escalator
 	ErrorID         string
 	ErrorMessage    string
@@ -69,7 +69,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	//create an escalator to use with createDefaultTicket
 
 	t.createEscalator(stub, []string{"Dortmund Hbf", "Gleis 4"})
-
+	t.createEscalator(stub, []string{"Bremen", "Gleis 1"})
 	//init SLAs for stats/data board with semi-reasonable numbers
 	t.createSLA(stub, []string{"Thyssen", "7200", "28800", "119", "21", "10"})
 	t.createSLA(stub, []string{"Schindler", "7200", "28800", "90", "3", "8"})
