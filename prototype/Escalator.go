@@ -43,7 +43,7 @@ type Ticket struct {
 	TechPart        string // representing the defective part of the escalator
 	ErrorID         string
 	ErrorMessage    string
-	ServiceProvider string // the assigned service provider thats commissioned to do the repairs
+	ServiceProvider string // the assigned service provider that is commissioned to do the repairs
 	SpEmployee      string // mechanic assigned by ServiceProvider
 	SpeCommentary   string // additional commentary, optionally to be filled out by the SpEmployee
 	EstRepairTime   string
@@ -69,20 +69,12 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	//create an escalator to use with createDefaultTicket
 
 	t.createEscalator(stub, []string{"Dortmund Hbf", "Gleis 4"})
-	t.createEscalator(stub, []string{"Bremen", "Gleis 1"})
+	t.createEscalator(stub, []string{"Bremen Hbf", "Gleis 1"})
 	//init SLAs for stats/data board with semi-reasonable numbers
 	t.createSLA(stub, []string{"Thyssen", "7200", "28800", "119", "21", "10"})
 	t.createSLA(stub, []string{"Schindler", "7200", "28800", "90", "3", "8"})
 	t.createSLA(stub, []string{"Otis", "7200", "28800", "97", "20", "10"})
 	t.createSLA(stub, []string{"DBIntern", "7200", "28800", "81", "11", "10"})
-	//	idAsString, _ := createID(stub, "escalator")
-	//	idAsString = "DO" + idAsString
-	//	var escalator = Escalator{
-	//		EscalatorID:  idAsString,
-	//		Trainstation: "Dortmund Hbf",
-	//		Platform:     "Gleis 4",
-	//		IsWorking:    true,
-	//	}
 	return nil, nil
 }
 
@@ -255,7 +247,7 @@ func (t *SimpleChaincode) createTicket(stub shim.ChaincodeStubInterface, args []
 	return nil, nil
 }
 
-// Creates a default ticket.
+// Creates a default ticket. This is indeed a necessary comment.
 //
 func (t *SimpleChaincode) createDefaultTicket(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
